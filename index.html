@@ -280,6 +280,8 @@ body.present .pres-ctl{display:flex;position:fixed;bottom:22px;left:50%;transfor
 #view>.sec-title:first-child{margin-top:0}
 @media(min-width:1000px){.kpis.k4{grid-template-columns:repeat(4,minmax(0,1fr))}}
 tr.hl td{background:rgba(242,163,20,.08)}
+select.edf,input.edf[type=date]{color:var(--txt,#EEF1F7);background:var(--navy3);border:1px solid var(--line2);border-radius:8px;padding:0 10px;font:600 13px Montserrat;color-scheme:dark}
+[data-theme=claro] select.edf,[data-theme=claro] input.edf[type=date]{color-scheme:light}
 </style>
 </head>
 <body>
@@ -555,7 +557,7 @@ const META_LINES=["TRUST","SITE","DREAM","RENT","GREEN","CARGAS","OUTRAS"];
 const LINE_COLORS=()=>({TRUST:Y,SITE:B,DREAM:"#C48CFF",RENT:"#4FD1C5",GREEN:G,CARGAS:AM,OUTRAS:M_});
 const STATUS_GROUPS={"Contrato fechado":["Contratos Comissionáveis"],"Em andamento":["Contrato Enviado","Aprovado","Acordo Pendente","Pendente Documento","Segunda Validação"],"Clientes futuros":["Clientes Futuros"],"Reprovado":["Reprovado"],"Perdido":["Lead Perdido"]};
 const sortM=a=>a.sort((x,y)=>monthSortKey(x).localeCompare(monthSortKey(y)));
-const REAL_PAGES=["geral","alertas","diario","metas","mensal","meta","google","gpt","campanhas","criativos","influencers","seo","reservas","receita","funil","produtos","concorrencia","analise","historico","importar"];
+const REAL_PAGES=["geral","alertas","diario","comparar","metas","mensal","meta","google","gpt","campanhas","criativos","influencers","seo","reservas","receita","funil","produtos","concorrencia","analise","historico","importar"];
 const MES_NOME=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 function monthRange(m){const[a,y]=m.split("/"),i=MES_ABR.indexOf(a),Y=2000+(+y),last=new Date(Y,i+1,0).getDate(),mm=String(i+1).padStart(2,"0");
   return{name:`${MES_NOME[i]}/${Y}`,range:`01/${mm} a ${last}/${mm}/${Y}`};}
@@ -563,6 +565,83 @@ const MEDIA=["Meta Ads","Google Ads","ChatGPT Ads","Influenciadores"];
 const GA_CH={"Organic Search":"Busca orgânica","Paid Social":"Meta Ads (social pago)","Paid Other":"Meta Audience Network","Direct":"Direto","Referral":"Indicação (links)","Organic Social":"Social orgânico","Paid Search":"Google Ads (pesquisa)","AI Assistant":"Assistentes de IA","Cross-network":"Google (multicanal)","Display":"Display","Email":"E-mail","Organic Video":"Vídeo orgânico","Unassigned":"Não atribuído","Paid Video":"Vídeo pago"};
 const GA_SRC=s=>({"(direct) / (none)":"Direto (digitou ou favoritos)","google / organic":"Google · orgânico","google / cpc":"Google Ads","ig / paid":"Meta Ads · Instagram","fb / paid":"Meta Ads · Facebook","an / paid":"Meta Ads · Audience Network","l.instagram.com / referral":"Link no Instagram (bio/stories)","instagram.com / referral":"Instagram","linktr.ee / referral":"Linktree","l.wl.co / referral":"Link do WhatsApp","m.facebook.com / referral":"Facebook (celular)","chatgpt.com / ai-assistant":"ChatGPT","bing / organic":"Bing · orgânico"}[s]||s);
 const GA_PG={"/":"página inicial","/yalla-trust/reservar":"reserva Trust","/yalla-trust/reserva":"reserva Trust (antiga)","/yalla-trust":"Yalla Trust","/yalla-green":"Yalla Green","/yalla-rent":"Yalla Rent","/yalla-green/reservar":"reserva Green","/para-motoristas-de-app":"motoristas de app","/carro-por-assinatura":"assinatura"};
+/* ---------- comparação ---------- */
+const CMP_BRL=v=>brl(v),CMP_BRL2=v=>brl(v,2),CMP_N=v=>num(Math.round(v)),CMP_P=v=>pct(v),CMP_P2=v=>pct(v,2);
+function cmpMonthMetrics(){
+  const MD=mediaMonthly(true),RS=resMonthly(true),MM=metaMonthly(true),GA=REAL.ga?.months||{},DD=REAL.daily?.days||{};
+  const at=(arr,months,m)=>{const i=months.indexOf(m);return i<0?null:arr[i];};
+  const res=m=>at(RS.total,RS.months,m),con=m=>at(RS.contr,RS.months,m),tot=m=>{const i=MD.months.indexOf(m);return i<0?null:MD.total[i];};
+  const spend=(md,m)=>at(MD.by[md],MD.months,m);
+  const days=m=>Object.keys(DD).filter(d=>MES_ABR[+d.slice(5,7)-1]+"/"+d.slice(2,4)===m);
+  const dsum=(m,i)=>{const d=days(m);return d.length?d.reduce((a,x)=>a+(DD[x][i]||0),0):null;};
+  const chat=m=>{const c=REAL.chat?.months?.[m];return c?Object.values(c.leads||{}).reduce((a,b)=>a+b,0):null;};
+  const inf=(m,i)=>{const f=REAL.influencers?.months?.[m];return f?f.rows.reduce((a,r)=>a+r[i],0):null;};
+  const g=m=>REAL.google?.[m],cg=m=>REAL.channels["ChatGPT Ads"]?.[m];
+  const ev=(m,k)=>GA[m]?(GA[m].events[k]||0):null,dv=(a,b)=>a==null||!b?null:a/b;
+  return[
+   {g:"Mídia paga",items:[
+    {lbl:"Gasto total",f:CMP_BRL,up:null,v:tot},
+    {lbl:"Meta Ads",f:CMP_BRL,up:null,v:m=>spend("Meta Ads",m)},
+    {lbl:"Google Ads",f:CMP_BRL,up:null,v:m=>spend("Google Ads",m)},
+    {lbl:"ChatGPT Ads",f:CMP_BRL,up:null,v:m=>spend("ChatGPT Ads",m)},
+    {lbl:"Influenciadores",f:CMP_BRL,up:null,v:m=>spend("Influenciadores",m)},
+    {lbl:"Média por dia",f:CMP_BRL,up:null,v:m=>{const d=days(m);return d.length?d.reduce((a,x)=>a+DD[x][0]+DD[x][1]+DD[x][2],0)/d.length:null;}},
+    {lbl:"Dias sem Meta Ads",f:CMP_N,up:false,v:m=>{const d=days(m);return d.length?d.filter(x=>DD[x][0]<5).length:null;}}]},
+   {g:"Resultado do negócio (Yalla Digital)",items:[
+    {lbl:"Reservas",f:CMP_N,up:true,v:res},
+    {lbl:"Contratos",f:CMP_N,up:true,v:con},
+    {lbl:"Reserva → contrato",f:CMP_P,up:true,v:m=>res(m)?con(m)/res(m)*100:null},
+    {lbl:"Reservas via site (Landing)",f:CMP_N,up:true,v:m=>RS.months.includes(m)?(RS.R_(m).origem.Landing||0):null},
+    {lbl:"Custo de mídia por reserva",f:CMP_BRL2,up:false,v:m=>dv(tot(m),res(m))},
+    {lbl:"Custo de mídia por contrato",f:CMP_BRL,up:false,v:m=>dv(tot(m),con(m))}]},
+   {g:"Meta Ads",items:[
+    {lbl:"Leads",f:CMP_N,up:true,v:m=>at(MM.leads,MM.months,m)},
+    {lbl:"Custo por lead",f:CMP_BRL2,up:false,v:m=>dv(spend("Meta Ads",m),at(MM.leads,MM.months,m))},
+    {lbl:"Cliques no link",f:CMP_N,up:true,v:m=>dsum(m,3)},
+    {lbl:"Reservas no pixel",f:CMP_N,up:null,v:m=>at(MM.pixel,MM.months,m)}]},
+   {g:"Google Ads",items:[
+    {lbl:"Cliques",f:CMP_N,up:true,v:m=>g(m)?g(m).clicks:null},
+    {lbl:"Conversões Google",f:CMP_N,up:true,v:m=>g(m)?g(m).conv:null},
+    {lbl:"CPC",f:CMP_BRL2,up:false,v:m=>g(m)&&g(m).clicks?g(m).cost/g(m).clicks:null}]},
+   {g:"ChatGPT Ads",items:[
+    {lbl:"Cliques",f:CMP_N,up:true,v:m=>cg(m)?cg(m).clicks:null},
+    {lbl:"CPC",f:CMP_BRL2,up:false,v:m=>cg(m)&&cg(m).clicks?cg(m).spend/cg(m).clicks:null}]},
+   {g:"Influenciadores",items:[
+    {lbl:"Cliques nos links",f:CMP_N,up:true,v:m=>inf(m,1)},
+    {lbl:"Reservas pelos links",f:CMP_N,up:true,v:m=>inf(m,2)}]},
+   {g:"Chat Yalla",items:[
+    {lbl:"Leads no chat",f:CMP_N,up:true,v:chat}]},
+   {g:"Site (Google Analytics 4)",items:[
+    {lbl:"Sessões",f:CMP_N,up:true,v:m=>GA[m]?.sessions??null},
+    {lbl:"Usuários",f:CMP_N,up:true,v:m=>GA[m]?.users??null},
+    {lbl:"Taxa de engajamento",f:CMP_P,up:true,v:m=>GA[m]?GA[m].engRate*100:null},
+    {lbl:"Busca orgânica (sessões)",f:CMP_N,up:true,v:m=>GA[m]?(GA[m].channels["Organic Search"]||[0])[0]:null},
+    {lbl:"Reservas enviadas no site",f:CMP_N,up:true,v:m=>ev(m,"reserva_submitted")},
+    {lbl:"Sessão → reserva enviada",f:CMP_P2,up:true,v:m=>GA[m]&&GA[m].sessions?ev(m,"reserva_submitted")/GA[m].sessions*100:null},
+    {lbl:"Cliques no WhatsApp",f:CMP_N,up:true,v:m=>ev(m,"whatsapp_click")}]}];
+}
+function cmpRangeMetrics(){
+  const DD=REAL.daily?.days||{};
+  const R=(a,b)=>Object.keys(DD).filter(d=>d>=a&&d<=b);
+  const S=(r,i)=>r.reduce((x,d)=>x+(DD[d][i]||0),0),T=r=>S(r,0)+S(r,1)+S(r,2);
+  const resS=r=>{const v=r.filter(d=>DD[d][6]!=null);return v.length?v.reduce((x,d)=>x+DD[d][6],0):null;};
+  return[
+   {g:"Mídia paga",items:[
+    {lbl:"Gasto total",f:CMP_BRL,up:null,v:r=>T(r)},
+    {lbl:"Meta Ads",f:CMP_BRL,up:null,v:r=>S(r,0)},
+    {lbl:"Google Ads",f:CMP_BRL,up:null,v:r=>S(r,1)},
+    {lbl:"ChatGPT Ads",f:CMP_BRL,up:null,v:r=>S(r,2)},
+    {lbl:"Média por dia",f:CMP_BRL,up:null,v:r=>r.length?T(r)/r.length:null},
+    {lbl:"Dias sem Meta Ads",f:CMP_N,up:false,v:r=>r.filter(d=>DD[d][0]<5).length}]},
+   {g:"Cliques nos anúncios",items:[
+    {lbl:"Meta (cliques no link)",f:CMP_N,up:true,v:r=>S(r,3)},
+    {lbl:"Google",f:CMP_N,up:true,v:r=>S(r,4)},
+    {lbl:"ChatGPT",f:CMP_N,up:true,v:r=>S(r,5)},
+    {lbl:"Custo por clique (todas)",f:CMP_BRL2,up:false,v:r=>{const c=S(r,3)+S(r,4)+S(r,5);return c?T(r)/c:null;}}]},
+   {g:"Site (GA4)",items:[
+    {lbl:"Reservas enviadas no site",f:CMP_N,up:true,v:resS},
+    {lbl:"Mídia por reserva do site",f:CMP_BRL2,up:false,v:r=>{const x=resS(r);return x?T(r)/x:null;}}]}];
+}
 const MEDIA_COLORS=()=>({"Meta Ads":Y,"Google Ads":B,"ChatGPT Ads":"#10A37F","Influenciadores":"#F687B3"});
 /* gasto por mídia mês a mês; null = sem dado lançado */
 function mediaMonthly(all){
@@ -800,6 +879,7 @@ const PAGES=[
   {id:"metas",name:"Metas e verba",ic:"target"},
   {id:"mensal",name:"Gasto mês a mês",ic:"cal"},
   {id:"diario",name:"Gasto por dia",ic:"cal"},
+  {id:"comparar",name:"Comparar",ic:"db"},
   {grp:"Mídia paga"},
   {id:"meta",name:"Meta Ads",ic:"meta"},
   {id:"google",name:"Google Ads",ic:"google"},
@@ -964,7 +1044,7 @@ const PALETTES={
 };
 let Y="#F2A314",W,B,G,M,M_,RD,AM,INK,LBL;
 const GH=a=>`rgba(${INK},${a})`;
-const greenC=()=>G;
+const greenC=()=>G;const G_=()=>G;
 function applyPalette(t){
   const p=PALETTES[t]||PALETTES.navy;({W,B,G,M,M_,RD,AM}=p);INK=p.ink;LBL=p.lbl;
   Chart.defaults.color=p.txt;Chart.defaults.borderColor=GH(.07);
@@ -1118,6 +1198,63 @@ geral_after(){
     {type:"line",label:"Contratos",data:MD.months.map(m=>ri(m)<0?null:RS.contr[ri(m)]),borderColor:G,backgroundColor:G,borderDash:[5,4],tension:.3,pointRadius:3,yAxisID:"y1",order:1}]},
     options:{maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{tooltip:{callbacks:{label:c=>c.dataset.yAxisID==="y"?`${c.dataset.label}: ${brl(c.raw||0)}`:`${c.dataset.label}: ${num(c.raw||0)}`}}},
       scales:{y:{stacked:true,...moneyAxis},y1:{position:"right",grid:{display:false}},x:{stacked:true,grid:{display:false}}}}});
+},
+comparar(){
+  const C=state.cmp=state.cmp||{mode:"mes"};
+  const ms=allRealMonths(),DD=REAL.daily?.days||{},dk=Object.keys(DD).sort(),dmin=dk[0],dmax=dk[dk.length-1];
+  const sel=state.mTo&&ms.includes(state.mTo)?state.mTo:ms[ms.length-1];
+  if(!C.a||!ms.includes(C.a))C.a=sel;if(!C.b||!ms.includes(C.b))C.b=ms[Math.max(0,ms.indexOf(C.a)-1)];
+  const addD=(d,n)=>{const x=new Date(d+"T12:00:00");x.setDate(x.getDate()+n);return x.toISOString().slice(0,10);};
+  if(!C.a1){C.a2=dmax;C.a1=addD(dmax,-6);C.b2=addD(C.a1,-1);C.b1=addD(C.b2,-6);}
+  const fd=d=>d.split("-").reverse().join("/");
+  const tab=(k,l)=>`<button class="btn" style="height:32px;font-size:12px;${C.mode===k?'border-color:var(--y);color:var(--y)':''}" onclick="state.cmp.mode='${k}';render()">${l}</button>`;
+  const mSel=(k)=>`<select class="edf" style="height:34px;min-width:150px" onchange="state.cmp.${k}=this.value;render()">${ms.slice().reverse().map(m=>`<option ${C[k]===m?"selected":""}>${m}</option>`).join("")}</select>`;
+  const dIn=(k)=>`<input type="date" class="edf" style="height:34px" min="${dmin}" max="${dmax}" value="${C[k]}" onchange="state.cmp.${k}=this.value;render()">`;
+  const preset=(l,n,same)=>`<button class="btn" style="height:28px;font-size:11px" onclick="__cmpPreset(${n},${same?1:0})">${l}</button>`;
+  window.__cmpPreset=(n,same)=>{const c=state.cmp;c.a2=dmax;if(same){c.a1=dmax.slice(0,8)+"01";const pm=new Date(dmax.slice(0,8)+"01T12:00:00");pm.setMonth(pm.getMonth()-1);const b1=pm.toISOString().slice(0,10);c.b1=b1;const last=new Date(pm.getFullYear(),pm.getMonth()+1,0).getDate(),dd=Math.min(+c.a2.slice(8,10),last);c.b2=b1.slice(0,8)+String(dd).padStart(2,"0");}else{c.a1=addD(dmax,-(n-1));c.b2=addD(c.a1,-1);c.b1=addD(c.b2,-(n-1));}render();};
+  const rowsHTML=(groups,va,vb)=>groups.map(G=>`<tr><td colspan="5" style="padding-top:16px;color:var(--y);font-weight:700;font-size:11px;letter-spacing:.08em;text-transform:uppercase">${G.g}</td></tr>`+G.items.map(it=>{
+      const a=va(it),b=vb(it),d=a!=null&&b!=null?a-b:null,pc=a!=null&&b?(a/b-1)*100:null;
+      const good=it.up==null||d==null||d===0?null:(d>0)===it.up,col=good==null?"var(--muted)":good?"var(--green)":"var(--red)";
+      return`<tr><td>${it.lbl}</td><td class="num"><b>${a!=null?it.f(a):"—"}</b></td><td class="num">${b!=null?it.f(b):"—"}</td><td class="num" style="color:${col}">${d==null?"—":(d>0?"+":d<0?"−":"")+it.f(Math.abs(d))}</td><td class="num" style="color:${col}">${pc==null||!isFinite(pc)?"—":(pc>0?"▲ ":pc<0?"▼ ":"")+pct(Math.abs(pc),1)}</td></tr>`}).join("")).join("");
+  let head,body,la,lb,csv=[];
+  if(C.mode==="mes"){
+    la=C.a;lb=C.b;const G=cmpMonthMetrics();
+    head=`<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="sub">Período A</span>${mSel("a")}<span class="sub">comparado com B</span>${mSel("b")}
+      <button class="btn" style="height:28px;font-size:11px" onclick="const c=state.cmp,t=c.a;c.a=c.b;c.b=t;render()">⇄ inverter</button></div>`;
+    body=rowsHTML(G,it=>it.v(C.a),it=>it.v(C.b));G.forEach(g=>g.items.forEach(it=>csv.push([g.g,it.lbl,it.v(C.a),it.v(C.b)])));
+  }else if(C.mode==="datas"){
+    la=fd(C.a1)+" a "+fd(C.a2);lb=fd(C.b1)+" a "+fd(C.b2);const G=cmpRangeMetrics(),rng=(x,y)=>dk.filter(d=>d>=x&&d<=y),ra=rng(C.a1,C.a2),rb=rng(C.b1,C.b2);
+    head=`<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="sub">A: de</span>${dIn("a1")}<span class="sub">até</span>${dIn("a2")}<span class="sub" style="margin-left:10px">B: de</span>${dIn("b1")}<span class="sub">até</span>${dIn("b2")}</div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">${preset("Últimos 7 dias x 7 anteriores",7)}${preset("Últimos 14 x 14 anteriores",14)}${preset("Últimos 30 x 30 anteriores",30)}${preset("Mês atual x mesmo período do mês anterior",0,1)}</div>
+      <p style="font-size:11px;color:var(--dim);margin-top:8px">Por data só existem os dados diários (gasto e cliques das mídias e reservas enviadas no site), de ${fd(dmin)} a ${fd(dmax)}. A: ${ra.length} dias · B: ${rb.length} dias.</p>`;
+    body=rowsHTML(G,it=>ra.length?it.v(ra):null,it=>rb.length?it.v(rb):null);G.forEach(g=>g.items.forEach(it=>csv.push([g.g,it.lbl,ra.length?it.v(ra):null,rb.length?it.v(rb):null])));
+  }else{
+    const G=cmpMonthMetrics(),M_=ms;
+    window.__cmpCSV=()=>{const L=[["Grupo","Indicador",...M_].join(";")];G.forEach(g=>g.items.forEach(it=>L.push([g.g,it.lbl,...M_.map(m=>{const v=it.v(m);return v==null?"":String(+v.toFixed(2)).replace(".",",")})].join(";"))));dlCSV(L.join("\n"),"yalla-todos-os-meses.csv");};
+    return`${sec("Comparar períodos")}
+    <div class="card" style="margin-bottom:14px"><div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:space-between">${`<div style="display:flex;gap:8px">${tab("mes","Mês x mês")}${tab("datas","Intervalo de datas")}${tab("todos","Todos os meses lado a lado")}</div>`}<button class="btn" style="height:32px;font-size:12px" onclick="__cmpCSV()">Baixar CSV</button></div></div>
+    ${T("Todos os indicadores por mês",`<div class="tbl-wrap"><table><thead><tr><th>Indicador</th>${M_.map(m=>`<th class="num">${m}</th>`).join("")}</tr></thead><tbody>
+      ${G.map(g=>`<tr><td colspan="${M_.length+1}" style="padding-top:16px;color:var(--y);font-weight:700;font-size:11px;letter-spacing:.08em;text-transform:uppercase">${g.g}</td></tr>`+g.items.map(it=>{const vals=M_.map(m=>it.v(m));return`<tr><td>${it.lbl}</td>${vals.map((v,i)=>{const p=i?vals[i-1]:null,d=v!=null&&p!=null?v-p:null,good=it.up==null||!d?null:(d>0)===it.up;
+        return`<td class="num">${v!=null?it.f(v):"—"}${d?`<div style="font-size:10px;color:${good==null?"var(--dim)":good?"var(--green)":"var(--red)"}">${d>0?"▲":"▼"} ${p?pct(Math.abs((v/p-1)*100),0):""}</div>`:""}</td>`}).join("")}</tr>`}).join("")).join("")}
+    </tbody></table></div><p style="font-size:11px;color:var(--dim);margin-top:10px">Setas = variação contra o mês anterior. Verde = melhorou, vermelho = piorou, cinza = gasto (nem bom nem ruim por si só).</p>`)}`;
+  }
+  window.__cmpCSV=()=>dlCSV([["Grupo","Indicador","A ("+la+")","B ("+lb+")","Diferença","Variação %"].join(";"),...csv.map(([g,l,a,b])=>[g,l,a==null?"":String(+a.toFixed(2)).replace(".",","),b==null?"":String(+b.toFixed(2)).replace(".",","),a!=null&&b!=null?String(+(a-b).toFixed(2)).replace(".",","):"",a!=null&&b?String(+((a/b-1)*100).toFixed(1)).replace(".",","):""].join(";"))].join("\n"),"yalla-comparacao.csv");
+  const key=(C.mode==="mes"?cmpMonthMetrics():cmpRangeMetrics()).flatMap(g=>g.items.filter(it=>it.up!=null).map(it=>({g:g.g,it})));
+  return`${sec("Comparar períodos","A x B · verde = melhorou, vermelho = piorou, cinza = gasto")}
+  <div class="card" style="margin-bottom:14px"><div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:space-between;margin-bottom:14px"><div style="display:flex;gap:8px">${tab("mes","Mês x mês")}${tab("datas","Intervalo de datas")}${tab("todos","Todos os meses lado a lado")}</div><button class="btn" style="height:32px;font-size:12px" onclick="__cmpCSV()">Baixar CSV</button></div>${head}</div>
+  <div class="grid" style="grid-template-columns:1fr">
+    ${T("Maiores mudanças",'<div class="chart-box" style="height:'+Math.max(260,Math.min(key.length,14)*26)+'px"><canvas id="cCmp"></canvas></div><p style="font-size:11px;color:var(--dim);margin-top:8px">Variação % de B para A nos indicadores de resultado e custo (ignora gasto).</p>')}
+    ${T("Comparação completa",`<div class="tbl-wrap"><table><thead><tr><th>Indicador</th><th class="num">A<div style="font-weight:500;text-transform:none;letter-spacing:0">${la}</div></th><th class="num">B<div style="font-weight:500;text-transform:none;letter-spacing:0">${lb}</div></th><th class="num">Diferença</th><th class="num">Variação</th></tr></thead><tbody>${body}</tbody></table></div>`)}
+  </div>`;
+},
+comparar_after(){
+  const C=state.cmp;if(!C||C.mode==="todos")return;
+  let G,va,vb;
+  if(C.mode==="mes"){G=cmpMonthMetrics();va=it=>it.v(C.a);vb=it=>it.v(C.b);}
+  else{const dk=Object.keys(REAL.daily?.days||{}).sort(),ra=dk.filter(d=>d>=C.a1&&d<=C.a2),rb=dk.filter(d=>d>=C.b1&&d<=C.b2);G=cmpRangeMetrics();va=it=>ra.length?it.v(ra):null;vb=it=>rb.length?it.v(rb):null;}
+  const L=G.flatMap(g=>g.items.filter(it=>it.up!=null).map(it=>{const a=va(it),b=vb(it);const SG={"Mídia paga":"Mídia","Resultado do negócio (Yalla Digital)":"Negócio","Meta Ads":"Meta","Google Ads":"Google","ChatGPT Ads":"ChatGPT","Influenciadores":"Influ.","Chat Yalla":"Chat","Site (Google Analytics 4)":"Site","Cliques nos anúncios":"Cliques","Site (GA4)":"Site"};return{l:(SG[g.g]||g.g)+" · "+it.lbl,p:a!=null&&b?(a/b-1)*100:null,up:it.up};})).filter(x=>x.p!=null&&isFinite(x.p)).sort((x,y)=>Math.abs(y.p)-Math.abs(x.p)).slice(0,14);
+  chart("cCmp",{type:"bar",data:{labels:L.map(x=>x.l),datasets:[{data:L.map(x=>+Math.max(-100,Math.min(300,x.p)).toFixed(1)),backgroundColor:L.map(x=>(x.p>0)===x.up?G_():RD),borderRadius:3}]},
+    options:{indexAxis:"y",maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>(L[c.dataIndex].p>0?"+":"")+pct(L[c.dataIndex].p,1)}}},scales:{x:{ticks:{callback:v=>v+"%"}},y:{grid:{display:false},ticks:{font:{size:10}}}}}});
 },
 diario(){
   const DD=REAL.daily;if(!DD)return T("Gasto por dia",'<div class="empty">Sem dados diários.</div>');
@@ -2296,6 +2433,7 @@ async function importGoogle(input){
     out.style.color="var(--green)";out.innerHTML=`✓ ${sortM(ks).map(k=>k+": "+brl(g[k].cost,2)).join(" · ")}<br><a href="#google" style="color:var(--y)">Ver em Google Ads</a>`;state.alerts=buildAlerts(R());renderNav();
   }catch(e){out.style.color="var(--red)";out.textContent="Não consegui ler: "+e.message;}
 }
+function dlCSV(t,n){const b=new Blob(["\ufeff"+t],{type:"text/csv;charset=utf-8"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
 function downloadReal(){const b=new Blob([JSON.stringify(REAL)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="yalla-dados-mensais.json";a.click();}
 function downloadComp(){
   const b=new Blob([JSON.stringify(COMP,null,1)],{type:"application/json"}),a=document.createElement("a");
@@ -2328,7 +2466,7 @@ function render(){
     document.getElementById("pageTitle").innerHTML=`${pg.name}<small>${state.page==="concorrencia"?"Consulta "+(COMP.date||"—"):r.label+" · "+r.period}</small>`;
   }
   const db=document.getElementById("demoBar");
-  const BANNER={concorrencia:`Dados reais · planilha de concorrência de ${COMP.date||"—"} (a consulta não muda com o mês)`,criativos:"Aguardando dados · veja abaixo o que enviar",seo:"Dados reais · Google Analytics 4 (yallacar.com.br) via Supermetrics",diario:"Dados reais · gasto diário da Meta, Google e ChatGPT via Supermetrics · reservas do site pelo GA4",
+  const BANNER={concorrencia:`Dados reais · planilha de concorrência de ${COMP.date||"—"} (a consulta não muda com o mês)`,criativos:"Aguardando dados · veja abaixo o que enviar",seo:"Dados reais · Google Analytics 4 (yallacar.com.br) via Supermetrics",comparar:"Compare quaisquer dois meses, dois intervalos de datas ou todos os meses lado a lado",diario:"Dados reais · gasto diário da Meta, Google e ChatGPT via Supermetrics · reservas do site pelo GA4",
     metas:"Realizado = dados reais · metas e orçamento editáveis (salvos neste navegador)",receita:"Contratos reais · premissas de receita editáveis",analise:"Resumo automático com dados reais · notas editáveis por mês",importar:"Importe os arquivos do mês ou lance canais sem exportação"};
   db.textContent=BANNER[state.page]||"Dados reais · Meta Ads, Google Ads, ChatGPT Ads, Yalla Digital, Chat Yalla e influenciadores";
   const waiting=/Aguardando/.test(db.textContent);db.style.background=waiting?"":"var(--green-soft)";db.style.color=waiting?"":"var(--green)";
