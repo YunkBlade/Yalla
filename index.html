@@ -282,6 +282,15 @@ body.present .pres-ctl{display:flex;position:fixed;bottom:22px;left:50%;transfor
 tr.hl td{background:rgba(242,163,20,.08)}
 select.edf,input.edf[type=date]{color:var(--txt,#EEF1F7);background:var(--navy3);border:1px solid var(--line2);border-radius:8px;padding:0 10px;font:600 13px Montserrat;color-scheme:dark}
 [data-theme=claro] select.edf,[data-theme=claro] input.edf[type=date]{color-scheme:light}
+.cmp-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.cmp-card{background:var(--navy3);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.cc-h{display:flex;justify-content:space-between;align-items:center;gap:8px;font:600 13px Montserrat;margin-bottom:12px}
+.cc-p{font:700 12px Montserrat;padding:3px 8px;border-radius:6px;white-space:nowrap}
+.cc-r{display:grid;grid-template-columns:14px 1fr auto;align-items:center;gap:8px;margin:7px 0}
+.cc-r i{font:700 11px Montserrat;font-style:normal;color:var(--dim)}
+.cc-r b{font:700 15px 'Barlow Condensed';letter-spacing:.02em;min-width:72px;text-align:right}
+.cc-b{height:10px;background:var(--navy4);border-radius:5px;overflow:hidden}.cc-b span{display:block;height:100%;border-radius:5px}
+.cc-w{font-size:11px;margin-top:8px;font-weight:600}
 </style>
 </head>
 <body>
@@ -619,6 +628,19 @@ function cmpMonthMetrics(){
     {lbl:"Reservas enviadas no site",f:CMP_N,up:true,v:m=>ev(m,"reserva_submitted")},
     {lbl:"Sessão → reserva enviada",f:CMP_P2,up:true,v:m=>GA[m]&&GA[m].sessions?ev(m,"reserva_submitted")/GA[m].sessions*100:null},
     {lbl:"Cliques no WhatsApp",f:CMP_N,up:true,v:m=>ev(m,"whatsapp_click")}]}];
+}
+function cmpCards(groups,va,vb,keys,la,lb){
+  const all=groups.flatMap(g=>g.items.map(it=>({g:g.g,it})));
+  const pick=keys.map(([g,l])=>all.find(x=>x.g===g&&x.it.lbl===l)).filter(Boolean);
+  return`<div class="cmp-cards">${pick.map(({it})=>{const a=va(it),b=vb(it);if(a==null&&b==null)return"";
+    const mx=Math.max(a||0,b||0)||1,pc=a!=null&&b?(a/b-1)*100:null,d=a!=null&&b!=null?a-b:null;
+    const good=it.up==null||!d?null:(d>0)===it.up,col=good==null?"var(--muted)":good?"var(--green)":"var(--red)",bg=good==null?"var(--navy4)":good?"var(--green-soft)":"rgba(255,99,99,.14)";
+    const word=good==null?(d?(d>0?"aumentou":"diminuiu"):"igual"):good?"melhorou":"piorou";
+    return`<div class="cmp-card"><div class="cc-h"><span>${it.lbl}</span><span class="cc-p" style="color:${col};background:${bg}">${pc==null||!isFinite(pc)?"—":(pc>0?"▲ ":pc<0?"▼ ":"")+pct(Math.abs(pc),0)}</span></div>
+      <div class="cc-r"><i>A</i><div class="cc-b"><span style="width:${a?Math.max(a/mx*100,2):0}%;background:var(--y)"></span></div><b>${a!=null?it.f(a):"—"}</b></div>
+      <div class="cc-r"><i>B</i><div class="cc-b"><span style="width:${b?Math.max(b/mx*100,2):0}%;background:var(--muted)"></span></div><b style="color:var(--muted)">${b!=null?it.f(b):"—"}</b></div>
+      <div class="cc-w" style="color:${col}">${word}${it.up===false?" · menor é melhor":""}</div></div>`}).join("")}</div>
+  <div style="display:flex;gap:16px;font-size:11px;color:var(--dim);margin-top:10px"><span><b style="color:var(--y)">■</b> A · ${la}</span><span><b style="color:var(--muted)">■</b> B · ${lb}</span><span>verde = melhorou · vermelho = piorou · cinza = gasto</span></div>`;
 }
 function cmpRangeMetrics(){
   const DD=REAL.daily?.days||{};
@@ -1243,18 +1265,12 @@ comparar(){
   return`${sec("Comparar períodos","A x B · verde = melhorou, vermelho = piorou, cinza = gasto")}
   <div class="card" style="margin-bottom:14px"><div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:space-between;margin-bottom:14px"><div style="display:flex;gap:8px">${tab("mes","Mês x mês")}${tab("datas","Intervalo de datas")}${tab("todos","Todos os meses lado a lado")}</div><button class="btn" style="height:32px;font-size:12px" onclick="__cmpCSV()">Baixar CSV</button></div>${head}</div>
   <div class="grid" style="grid-template-columns:1fr">
-    ${T("Maiores mudanças",'<div class="chart-box" style="height:'+Math.max(260,Math.min(key.length,14)*26)+'px"><canvas id="cCmp"></canvas></div><p style="font-size:11px;color:var(--dim);margin-top:8px">Variação % de B para A nos indicadores de resultado e custo (ignora gasto).</p>')}
+    ${T("Resumo visual — principais indicadores",C.mode==="mes"?cmpCards(cmpMonthMetrics(),it=>it.v(C.a),it=>it.v(C.b),[["Mídia paga","Gasto total"],["Resultado do negócio (Yalla Digital)","Reservas"],["Resultado do negócio (Yalla Digital)","Contratos"],["Resultado do negócio (Yalla Digital)","Reserva → contrato"],["Resultado do negócio (Yalla Digital)","Custo de mídia por reserva"],["Resultado do negócio (Yalla Digital)","Custo de mídia por contrato"],["Meta Ads","Leads"],["Meta Ads","Custo por lead"],["Chat Yalla","Leads no chat"],["Site (Google Analytics 4)","Sessões"],["Site (Google Analytics 4)","Reservas enviadas no site"],["Site (Google Analytics 4)","Sessão → reserva enviada"]],la,lb)
+      :(()=>{const dk=Object.keys(REAL.daily?.days||{}).sort(),ra=dk.filter(d=>d>=C.a1&&d<=C.a2),rb=dk.filter(d=>d>=C.b1&&d<=C.b2);return cmpCards(cmpRangeMetrics(),it=>ra.length?it.v(ra):null,it=>rb.length?it.v(rb):null,[["Mídia paga","Gasto total"],["Mídia paga","Média por dia"],["Mídia paga","Meta Ads"],["Mídia paga","Google Ads"],["Mídia paga","ChatGPT Ads"],["Mídia paga","Dias sem Meta Ads"],["Cliques nos anúncios","Meta (cliques no link)"],["Cliques nos anúncios","Google"],["Cliques nos anúncios","ChatGPT"],["Cliques nos anúncios","Custo por clique (todas)"],["Site (GA4)","Reservas enviadas no site"],["Site (GA4)","Mídia por reserva do site"]],la,lb);})())}
     ${T("Comparação completa",`<div class="tbl-wrap"><table><thead><tr><th>Indicador</th><th class="num">A<div style="font-weight:500;text-transform:none;letter-spacing:0">${la}</div></th><th class="num">B<div style="font-weight:500;text-transform:none;letter-spacing:0">${lb}</div></th><th class="num">Diferença</th><th class="num">Variação</th></tr></thead><tbody>${body}</tbody></table></div>`)}
   </div>`;
 },
 comparar_after(){
-  const C=state.cmp;if(!C||C.mode==="todos")return;
-  let G,va,vb;
-  if(C.mode==="mes"){G=cmpMonthMetrics();va=it=>it.v(C.a);vb=it=>it.v(C.b);}
-  else{const dk=Object.keys(REAL.daily?.days||{}).sort(),ra=dk.filter(d=>d>=C.a1&&d<=C.a2),rb=dk.filter(d=>d>=C.b1&&d<=C.b2);G=cmpRangeMetrics();va=it=>ra.length?it.v(ra):null;vb=it=>rb.length?it.v(rb):null;}
-  const L=G.flatMap(g=>g.items.filter(it=>it.up!=null).map(it=>{const a=va(it),b=vb(it);const SG={"Mídia paga":"Mídia","Resultado do negócio (Yalla Digital)":"Negócio","Meta Ads":"Meta","Google Ads":"Google","ChatGPT Ads":"ChatGPT","Influenciadores":"Influ.","Chat Yalla":"Chat","Site (Google Analytics 4)":"Site","Cliques nos anúncios":"Cliques","Site (GA4)":"Site"};return{l:(SG[g.g]||g.g)+" · "+it.lbl,p:a!=null&&b?(a/b-1)*100:null,up:it.up};})).filter(x=>x.p!=null&&isFinite(x.p)).sort((x,y)=>Math.abs(y.p)-Math.abs(x.p)).slice(0,14);
-  chart("cCmp",{type:"bar",data:{labels:L.map(x=>x.l),datasets:[{data:L.map(x=>+Math.max(-100,Math.min(300,x.p)).toFixed(1)),backgroundColor:L.map(x=>(x.p>0)===x.up?G_():RD),borderRadius:3}]},
-    options:{indexAxis:"y",maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>(L[c.dataIndex].p>0?"+":"")+pct(L[c.dataIndex].p,1)}}},scales:{x:{ticks:{callback:v=>v+"%"}},y:{grid:{display:false},ticks:{font:{size:10}}}}}});
 },
 diario(){
   const DD=REAL.daily;if(!DD)return T("Gasto por dia",'<div class="empty">Sem dados diários.</div>');
