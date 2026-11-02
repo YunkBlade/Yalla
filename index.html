@@ -277,6 +277,8 @@ body.present .pres-ctl{display:flex;position:fixed;bottom:22px;left:50%;transfor
 #view.anim .card{animation:fadeUp .55s cubic-bezier(.2,.7,.2,1) both}
 @media (prefers-reduced-motion:reduce){#view.anim .card{animation:none}}
 @media print{#view.anim .card{animation:none}}
+#view>.sec-title:first-child{margin-top:0}
+@media(min-width:1000px){.kpis.k4{grid-template-columns:repeat(4,minmax(0,1fr))}}
 </style>
 </head>
 <body>
@@ -550,7 +552,7 @@ const META_LINES=["TRUST","SITE","DREAM","RENT","GREEN","CARGAS","OUTRAS"];
 const LINE_COLORS=()=>({TRUST:Y,SITE:B,DREAM:"#C48CFF",RENT:"#4FD1C5",GREEN:G,CARGAS:AM,OUTRAS:M_});
 const STATUS_GROUPS={"Contrato fechado":["Contratos Comissionáveis"],"Em andamento":["Contrato Enviado","Aprovado","Acordo Pendente","Pendente Documento","Segunda Validação"],"Clientes futuros":["Clientes Futuros"],"Reprovado":["Reprovado"],"Perdido":["Lead Perdido"]};
 const sortM=a=>a.sort((x,y)=>monthSortKey(x).localeCompare(monthSortKey(y)));
-const REAL_PAGES=["geral","metas","mensal","meta","google","gpt","campanhas","criativos","influencers","seo","reservas","receita","funil","produtos","concorrencia","analise","historico","importar"];
+const REAL_PAGES=["geral","alertas","metas","mensal","meta","google","gpt","campanhas","criativos","influencers","seo","reservas","receita","funil","produtos","concorrencia","analise","historico","importar"];
 const MES_NOME=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 function monthRange(m){const[a,y]=m.split("/"),i=MES_ABR.indexOf(a),Y=2000+(+y),last=new Date(Y,i+1,0).getDate(),mm=String(i+1).padStart(2,"0");
   return{name:`${MES_NOME[i]}/${Y}`,range:`01/${mm} a ${last}/${mm}/${Y}`};}
@@ -787,7 +789,8 @@ const I={
 const svg=k=>`<svg viewBox="0 0 24 24">${I[k]}</svg>`;
 const PAGES=[
   {grp:"Relatório"},
-  {id:"geral",name:"Visão geral",ic:"home",alerts:true},
+  {id:"geral",name:"Visão geral",ic:"home"},
+  {id:"alertas",name:"Resumo e alertas",ic:"alert",alerts:true},
   {id:"metas",name:"Metas e verba",ic:"target"},
   {id:"mensal",name:"Gasto mês a mês",ic:"cal"},
   {grp:"Mídia paga"},
@@ -1033,6 +1036,7 @@ geral(){
   const ri=m=>RS.months.indexOf(m),resOf=m=>ri(m)<0?null:RS.total[ri(m)],conOf=m=>ri(m)<0?null:RS.contr[ri(m)];
   const mi=m=>MM.months.indexOf(m),leadsOf=m=>mi(m)<0?null:MM.leads[mi(m)];
   const T_=MD.total,res=MD.months.map(resOf),con=MD.months.map(conOf),leads=MD.months.map(leadsOf);
+  const chatLd=MD.months.map(m=>{const c=REAL.chat?.months?.[m];return c?sum(Object.values(c.leads||{})):null;});
   const cpr=i=>res[i]?T_[i]/res[i]:null,cpc=i=>con[i]?T_[i]/con[i]:null,cv=i=>res[i]?con[i]/res[i]*100:null;
   const dv=(a,b)=>b?(a/b-1)*100:null,sg=v=>v==null?"":(v>0?"+":"")+pct(v,0);
   const IF=REAL.influencers?.months?.[cur],infRes=IF?IF.rows.reduce((s,r)=>s+r[2],0):null,infCl=IF?IF.rows.reduce((s,r)=>s+r[1],0):null;
@@ -1042,15 +1046,17 @@ geral(){
   const summary=[
     `Em ${monthRange(cur).name}, a Yalla investiu ${brl(T_[L])} em mídia paga${L?` (${sg(dv(T_[L],T_[L-1]))} vs ${prev})`:""} e gerou ${res[L]!=null?num(res[L])+" reservas":"—"} e ${con[L]!=null?num(con[L])+" contratos":"—"}.`,
     con[L]?`Cada contrato custou ${brl(cpc(L))} em mídia${L&&cpc(L-1)?` (${sg(dv(cpc(L),cpc(L-1)))})`:""}, com ${pct(cv(L))} das reservas virando contrato${L&&cv(L-1)!=null?` (era ${pct(cv(L-1))})`:""}.`:"Sem contratos registrados no mês.",
+    chatLd[L]!=null?`O Chat Yalla recebeu ${num(chatLd[L])} leads${L&&chatLd[L-1]?` (${sg(dv(chatLd[L],chatLd[L-1]))} vs ${prev})`:""}.`:"",
     topMd?`${topMd.md} concentrou ${pct(topMd.v/T_[L]*100,0)} da verba${infRes!=null?`; influenciadores trouxeram ${num(infRes)} reservas pelos links`:""}.`:""
   ].filter(Boolean);
+  state.summary=summary;
+  const nAl=state.alerts.filter(x=>!x.ex).length;
   return`
-  <div class="summary"><div class="badge">Em<b>30s</b></div><ol>${summary.map(x=>`<li>${x}</li>`).join("")}</ol></div>
-  ${alertsHTML(state.alerts.filter(x=>!x.ex),true,3)}
-  ${sec("Indicadores do mês","bolinha verde/vermelha = comparação com o mês anterior · linha = histórico")}
-  <div class="grid kpis">
+  ${sec("Indicadores do mês",`bolinha verde/vermelha = comparação com o mês anterior · linha = histórico${nAl?` · <a href="#alertas" style="color:var(--y)">resumo e ${nAl} alertas</a>`:""}`)}
+  <div class="grid kpis k4">
     ${kpi({lbl:"Mídia paga",v:[T_[L],L?T_[L-1]:null],f:v=>brl(v),spark:T_,hl:true,sub:"todas as mídias"})}
     ${kpi({lbl:"Leads Meta",v:[leads[L]||0,L?leads[L-1]:null],f:num,spark:leads})}
+    ${kpi({lbl:"Leads no Chat Yalla",v:[chatLd[L]||0,L?chatLd[L-1]:null],f:num,spark:chatLd,sub:chatLd[L]==null?"sem dados do mês":"leads de todas as origens"})}
     ${kpi({lbl:"Reservas",v:[res[L]||0,L?res[L-1]:null],f:num,spark:res,sub:"Yalla Digital"})}
     ${kpi({lbl:"Contratos",v:[con[L]||0,L?con[L-1]:null],f:num,spark:con})}
     ${kpi({lbl:"Reserva → contrato",v:[cv(L)||0,L?cv(L-1):null],f:v=>pct(v),spark:MD.months.map((_,i)=>cv(i)!=null?+cv(i).toFixed(1):null)})}
@@ -1080,6 +1086,15 @@ geral(){
       return`<tr><td><b>${x.md}</b></td><td class="num">${x.v!=null?brl(x.v):"—"}</td><td class="num">${x.v!=null?pct(x.v/T_[L]*100):"—"}</td><td class="num ${v==null?'':v>0?'a':'g'}">${v==null?"—":(v>0?"▲ ":"▼ ")+pct(Math.abs(v))}</td><td>${r}</td><td class="num">${c}</td><td style="color:var(--muted)">${at}</td></tr>`}).join("")}
     <tr><td><b style="color:var(--y)">Total</b></td><td class="num"><b style="color:var(--y)">${brl(T_[L])}</b></td><td class="num">100%</td><td class="num">${L?sg(dv(T_[L],T_[L-1])):"—"}</td><td>${res[L]!=null?num(res[L])+" reservas · "+num(con[L])+" contratos":"—"}</td><td class="num">${cpc(L)?brl(cpc(L))+" /contrato":"—"}</td><td></td></tr>
   </tbody></table></div><p style="font-size:11px;color:var(--dim);margin-top:10px">Reservas e contratos vêm do Yalla Digital e não identificam a mídia de origem (só Landing ou Interna) — por isso custo por reserva e por contrato usam o gasto de todas as mídias. Influenciadores têm atribuição pelos links /r/.</p>`)}`;
+},
+alertas(){
+  state.summary=null;P.geral();
+  const al=state.alerts.filter(x=>!x.ex);
+  const warn=al.filter(x=>x.lv!=="info"),info=al.filter(x=>x.lv==="info");
+  return`<div class="summary"><div class="badge">Em<b>30s</b></div><ol>${(state.summary||[]).map(x=>`<li>${x}</li>`).join("")}</ol></div>
+  ${sec("Pontos de atenção",warn.length?warn.length+" para agir":"")}
+  ${warn.length?alertsHTML(warn,true):'<div class="empty">Nada pedindo ação agora.</div>'}
+  ${info.length?sec("Para conferir",info.length+" informativos")+alertsHTML(info,true):""}`;
 },
 geral_after(){
   const MD=mediaMonthly(),RS=resMonthly(),C=MEDIA_COLORS(),ri=m=>RS.months.indexOf(m);
@@ -1912,6 +1927,7 @@ const HELP={
     "gasto por mídia":"Quanto foi investido em cada mídia no mês e a participação de cada uma no total.",
     "mídia paga x reservas e contratos":"Barras = gasto por mídia em cada mês. Linhas = reservas e contratos do Yalla Digital. Mostra se mais verba está trazendo mais resultado.",
     "funil do mês":"Caminho do mês: leads que entraram no Chat Yalla → reservas → reservas que não foram perdidas nem reprovadas → contratos. O % ao lado mostra quanto passou de uma etapa para a outra.",
+    "leads no chat yalla":"Leads que entraram no Chat Yalla no mês, somando todas as origens (site, WhatsApp, Instagram etc.), conforme o relatório do chat.",
     "resumo por mídia":"Gasto, participação e principal resultado de cada mídia no mês. Só influenciadores têm reserva atribuída (pelos links /r/); as outras mídias não são rastreadas até a reserva."
   },
   mensal:{
