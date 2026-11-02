@@ -7,10 +7,11 @@ module.exports = async (req, res) => {
     const r = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=xlsx`, { redirect: "follow" });
     const ct = r.headers.get("content-type") || "";
     if (!r.ok || !ct.includes("spreadsheetml")) {
-      res.statusCode = r.ok ? 403 : 502;
+      const priv = r.ok || r.status === 401 || r.status === 403;
+      res.statusCode = priv ? 403 : 502;
       res.setHeader("Content-Type", "application/json; charset=utf-8");
       res.end(JSON.stringify({
-        error: r.ok
+        error: priv
           ? "A planilha não está pública. No Google Sheets: Compartilhar → Qualquer pessoa com o link → Leitor."
           : "Google Sheets não respondeu (" + r.status + ")."
       }));
