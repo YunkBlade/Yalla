@@ -271,6 +271,12 @@ body.present .pres-ctl{display:flex;position:fixed;bottom:22px;left:50%;transfor
   .app{grid-template-columns:1fr}.top{position:static}
   body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+
+/* animações de entrada */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+#view.anim .card{animation:fadeUp .55s cubic-bezier(.2,.7,.2,1) both}
+@media (prefers-reduced-motion:reduce){#view.anim .card{animation:none}}
+@media print{#view.anim .card{animation:none}}
 </style>
 </head>
 <body>
@@ -891,7 +897,46 @@ function alertsHTML(list,showLink=true,limit=0){
    CHARTS
    ===================================================================== */
 let charts=[];
-function chart(id,cfg){const el=document.getElementById(id);if(el)charts.push(new Chart(el,cfg));}
+/* ---- animações ---- */
+const REDUCED=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+let ANIM=!REDUCED, chartIO=null;
+function mkChart(el,cfg){if(!ANIM){cfg.options=cfg.options||{};cfg.options.animation=false;}charts.push(new Chart(el,cfg));}
+function chart(id,cfg){const el=document.getElementById(id);if(!el)return;
+  if(!ANIM||!("IntersectionObserver"in window)){mkChart(el,cfg);return;}
+  if(!chartIO)chartIO=new IntersectionObserver(es=>es.forEach(e=>{if(!e.isIntersecting)return;chartIO.unobserve(e.target);
+    const c=e.target._cfg;delete e.target._cfg;if(c&&e.target.isConnected)mkChart(e.target,c);}),{rootMargin:"0px 0px -30px 0px",threshold:.12});
+  el._cfg=cfg;chartIO.observe(el);}
+function flushCharts(){document.querySelectorAll("#view canvas").forEach(el=>{if(el._cfg){chartIO&&chartIO.unobserve(el);const c=el._cfg;delete el._cfg;c.options=c.options||{};c.options.animation=false;charts.push(new Chart(el,c));}});
+  document.querySelectorAll("#view [data-final]").forEach(el=>{el.textContent=el.dataset.final;});}
+window.addEventListener("beforeprint",flushCharts);
+/* escalonamento: barras crescem uma após a outra, linhas sobem do eixo */
+const stagger=c=>c.type==="data"&&c.mode==="default"&&!c.chart.$done?Math.min(c.dataIndex*45+c.datasetIndex*140,900):0;
+Chart.defaults.animation.duration=950;Chart.defaults.animation.easing="easeOutQuart";
+Chart.defaults.animation.delay=stagger;
+Chart.defaults.animation.onComplete=e=>{e.chart.$done=true;};
+Chart.defaults.datasets.line.animations={y:{from:c=>c.type==="data"&&!c.chart.$done&&c.chart.chartArea?c.chart.chartArea.bottom:undefined}};
+function countUp(root){
+  root.querySelectorAll(".kpi .val, .big-num").forEach(el=>{
+    if(el.children.length)return;const txt=el.textContent,m=txt.match(/\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:,\d+)?/);if(!m)return;
+    const raw=m[0],dec=(raw.split(",")[1]||"").length,n=parseFloat(raw.replace(/\./g,"").replace(",","."));if(!isFinite(n)||!n)return;
+    const pre=txt.slice(0,m.index),suf=txt.slice(m.index+raw.length),grp=raw.includes(".");
+    const fmt=v=>v.toLocaleString("pt-BR",{minimumFractionDigits:dec,maximumFractionDigits:dec,useGrouping:grp});
+    el.dataset.final=txt;const t0=performance.now(),D=900;
+    const step=t=>{const p=Math.min((t-t0)/D,1),k=1-Math.pow(1-p,3);
+      if(p<1&&el.isConnected){el.textContent=pre+fmt(n*k)+suf;requestAnimationFrame(step);}else{el.textContent=txt;delete el.dataset.final;}};
+    el.textContent=pre+fmt(0)+suf;requestAnimationFrame(step);});
+}
+function growBars(root){
+  const bars=[...root.querySelectorAll('span[style*="width:"]')].filter(b=>/width:\s*[\d.]+%/.test(b.getAttribute("style")));
+  bars.forEach(b=>{b.dataset.w=b.style.width;b.style.transition="none";b.style.width="0";});
+  root.offsetWidth;
+  requestAnimationFrame(()=>bars.forEach((b,i)=>{b.style.transition=`width .9s cubic-bezier(.2,.7,.2,1) ${Math.min(i*30,450)}ms`;b.style.width=b.dataset.w;}));
+}
+function introAnim(view){
+  view.classList.remove("anim");void view.offsetWidth;view.classList.add("anim");
+  [...view.querySelectorAll(".card")].forEach((c,i)=>c.style.animationDelay=Math.min(i*40,520)+"ms");
+  countUp(view);growBars(view);
+}
 Chart.defaults.font.family="Montserrat";Chart.defaults.font.size=11;
 Chart.defaults.plugins.legend.labels.boxWidth=10;Chart.defaults.plugins.legend.labels.boxHeight=10;
 /* paleta dos gráficos por tema */
@@ -925,7 +970,7 @@ function drawSparks(){
   document.querySelectorAll("canvas.spark").forEach(el=>{
     const d=JSON.parse(el.dataset.spark), v=getComputedStyle(document.documentElement).getPropertyValue(el.dataset.color).trim()||Y;
     charts.push(new Chart(el,{type:"line",data:{labels:d.map((_,i)=>i),datasets:[{data:d,borderColor:v,borderWidth:1.6,pointRadius:0,tension:.35,fill:true,backgroundColor:v+"22"}]},
-      options:{maintainAspectRatio:false,responsive:true,animation:false,plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:{display:false},y:{display:false}}}}));
+      options:{maintainAspectRatio:false,responsive:true,animation:ANIM?{duration:1100,delay:c=>c.type==="data"?c.dataIndex*35:0}:false,plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:{display:false},y:{display:false}}}}));
   });
 }
 const moneyAxis={ticks:{callback:v=>"R$ "+short(v)}};
@@ -2121,10 +2166,12 @@ function render(){
     metas:"Realizado = dados reais · metas e orçamento editáveis (salvos neste navegador)",receita:"Contratos reais · premissas de receita editáveis",analise:"Resumo automático com dados reais · notas editáveis por mês",importar:"Importe os arquivos do mês ou lance canais sem exportação"};
   db.textContent=BANNER[state.page]||"Dados reais · Meta Ads, Google Ads, ChatGPT Ads, Yalla Digital, Chat Yalla e influenciadores";
   const waiting=/Aguardando/.test(db.textContent);db.style.background=waiting?"":"var(--green-soft)";db.style.color=waiting?"":"var(--green)";
-  charts.forEach(c=>c.destroy());charts=[];
-  document.getElementById("view").innerHTML=P[state.page]();
+  charts.forEach(c=>c.destroy());charts=[];if(chartIO)chartIO.disconnect();
+  const vkey=[state.page,state.mTo,state.report,state.metaMonth,state.product,COMPARE].join("|");
+  const changed=vkey!==state.vkey;ANIM=!REDUCED&&changed;state.vkey=vkey;
+  const view=document.getElementById("view");view.innerHTML=P[state.page]();
   if(P[state.page+"_after"])P[state.page+"_after"]();
-  drawSparks();attachHelp();renderNav();updPres();window.scrollTo(0,0);
+  drawSparks();attachHelp();renderNav();updPres();if(ANIM)introAnim(view);else view.classList.remove("anim");if(changed)window.scrollTo(0,0);
 }
 function setReport(id){state.report=id;document.getElementById("selReport").value=id;}
 
