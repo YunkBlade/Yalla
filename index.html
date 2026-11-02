@@ -1747,8 +1747,12 @@ reservas(){
   const spend=RS.months.map(m=>spendFor(MM,m));
   const land=RS.ser("origem","Landing"),inter=RS.ser("origem","Interna");
   const first=RS.R_(RS.months[0]).first;
-  const allMods={},allContr={};RS.months.forEach(m=>{const r=RS.R_(m);for(const k in r.modelos)allMods[k]=(allMods[k]||0)+r.modelos[k];for(const k in r.modelosContr)allContr[k]=(allContr[k]||0)+r.modelosContr[k];});
-  const top=Object.entries(allMods).sort((a,b)=>b[1]-a[1]).slice(0,15),maxTop=top[0]?top[0][1]:1;
+  const modM=state.modM&&RS.months.includes(state.modM)?state.modM:"all",modSet=modM==="all"?RS.months:[modM];
+  const agg=ms=>{const a={},c={};ms.forEach(m=>{const r=RS.R_(m);for(const k in r.modelos)a[k]=(a[k]||0)+r.modelos[k];for(const k in r.modelosContr)c[k]=(c[k]||0)+r.modelosContr[k];});return[a,c];};
+  const [allMods,allContr]=agg(modSet),pvM=modM!=="all"&&RS.months.indexOf(modM)>0?RS.months[RS.months.indexOf(modM)-1]:null,[pvMods]=pvM?agg([pvM]):[{}];
+  const modTot=Object.values(allMods).reduce((a,b)=>a+b,0),modCon=Object.values(allContr).reduce((a,b)=>a+b,0),modAvg=modTot?modCon/modTot*100:0;
+  const allSorted=Object.entries(allMods).sort((a,b)=>b[1]-a[1]),top=state.modAll?allSorted:allSorted.slice(0,15),maxTop=top[0]?top[0][1]:1;
+  const chip=(v,l)=>`<button class="btn" style="height:30px;font-size:12px;${modM===v?'border-color:var(--y);color:var(--y)':''}" onclick="state.modM='${v}';render()">${l}</button>`;
   const statusKeys=[...STATUS_LEAD_ORDER.filter(k=>RS.keysOf("statusLead").includes(k)),...RS.keysOf("statusLead").filter(k=>!STATUS_LEAD_ORDER.includes(k))];
   const fmtD=d=>d?d.split("-").reverse().join("/"):"—";
   return`${alertsHTML(state.alerts.filter(a=>a.page==="reservas"),false)}
@@ -1779,10 +1783,14 @@ reservas(){
   <div style="margin-top:14px">${T("Status do lead — detalhe",`<div class="tbl-wrap"><table><thead><tr><th>Status</th>${RS.months.map(m=>`<th class="num">${m}</th>`).join("")}<th class="num">Total</th></tr></thead><tbody>
     ${statusKeys.map(k=>{const v=RS.sl(k);return`<tr><td><b>${k}</b></td>${v.map((x,i)=>`<td class="num">${x?num(x):"—"}<br><small style="color:var(--dim)">${x?pct(x/RS.total[i]*100):""}</small></td>`).join("")}<td class="num"><b>${num(sum(v))}</b></td></tr>`}).join("")}
   </tbody></table></div>`)}</div>
-  ${sec("Modelos mais reservados",RS.months[0]+" a "+RS.months[L])}
-  ${T("Top 15 modelos — reservas e contratos",`<div class="tbl-wrap"><table><thead><tr><th>Modelo</th><th>Reservas</th><th class="num">Contratos</th><th class="num">Conversão</th></tr></thead><tbody>
-    ${top.map(([k,v])=>{const c=allContr[k]||0,cv=c/v*100;return`<tr><td><b>${k}</b></td><td><div class="occ"><div class="bar" style="width:220px"><span style="width:${v/maxTop*100}%;background:var(--y)"></span></div>${num(v)}</div></td><td class="num">${num(c)}</td><td class="num ${cv>=sum(RS.contr)/sum(RS.total)*100?'g':'a'}">${pct(cv)}</td></tr>`}).join("")}
-  </tbody></table></div><p style="font-size:11px;color:var(--dim);margin-top:8px">Verde = conversão acima da média geral (${pct(sum(RS.contr)/sum(RS.total)*100)}).</p>`)}
+  ${sec("Modelos mais reservados",modM==="all"?RS.months[0]+" a "+RS.months[L]:monthRange(modM).name)}
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">${chip("all","Todos ("+RS.months[0]+" a "+RS.months[L]+")")}${RS.months.map(m=>chip(m,m)).join("")}</div>
+  ${T((state.modAll?"Todos os modelos":"Top 15 modelos")+" — reservas e contratos"+(modM==="all"?"":" em "+modM),`<div style="display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:10px"><span><b style="color:var(--txt)">${num(modTot)}</b> reservas</span><span><b style="color:var(--txt)">${num(modCon)}</b> contratos</span><span><b style="color:var(--txt)">${allSorted.length}</b> modelos reservados</span><span>conversão média <b style="color:var(--y)">${pct(modAvg)}</b></span></div>
+    <div class="tbl-wrap"><table><thead><tr><th>#</th><th>Modelo</th><th>Reservas</th><th class="num">% das reservas</th>${pvM?`<th class="num">vs ${pvM}</th>`:""}<th class="num">Contratos</th><th class="num">Conversão</th></tr></thead><tbody>
+    ${top.map(([k,v],i)=>{const c=allContr[k]||0,cv=c/v*100,pv=pvMods[k];return`<tr><td style="color:var(--dim)">${i+1}</td><td><b>${k}</b></td><td><div class="occ"><div class="bar" style="width:200px"><span style="width:${v/maxTop*100}%;background:var(--y)"></span></div>${num(v)}</div></td><td class="num">${pct(v/modTot*100)}</td>${pvM?`<td class="num ${pv==null?'':v>=pv?'g':'a'}">${pv==null?'<span class="chip neu">novo</span>':(v>=pv?"▲ ":"▼ ")+pct(Math.abs((v/pv-1)*100),0)}</td>`:""}<td class="num">${num(c)}</td><td class="num ${cv>=modAvg?'g':'a'}">${pct(cv)}</td></tr>`}).join("")}
+  </tbody></table></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap"><p style="font-size:11px;color:var(--dim)">Verde = conversão acima da média do período (${pct(modAvg)}). Reservas pela data da reserva; contratos = status comissionável atual.</p>
+  ${allSorted.length>15?`<button class="btn" style="height:28px;font-size:11px" onclick="state.modAll=!state.modAll;render()">${state.modAll?"Mostrar só o top 15":"Ver todos os "+allSorted.length+" modelos"}</button>`:""}</div>`)}
   ${sec("Quando as reservas são feitas","dia e horário da solicitação, todos os meses")}
   ${T("Solicitações por dia e horário",resHeatHTML(RS))}`;
 },
