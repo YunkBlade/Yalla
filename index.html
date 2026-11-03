@@ -292,6 +292,7 @@ select.edf,input.edf[type=date]{color:var(--txt,#EEF1F7);background:var(--navy3)
 .cc-b{height:10px;background:var(--navy4);border-radius:5px;overflow:hidden}.cc-b span{display:block;height:100%;border-radius:5px}
 .cc-w{font-size:11px;margin-top:8px;font-weight:600}
 .sheet-t td{max-width:340px;white-space:normal;vertical-align:top;font-size:12px}.sheet-t th{white-space:normal;min-width:90px;font-size:10.5px}
+.cmp-all td,.cmp-all th{white-space:nowrap}
 </style>
 </head>
 <body>
@@ -968,8 +969,47 @@ function compOffersAll(){
   }
   const seen=new Set();return out.filter(o=>{const k=[o.d,normTxt(o.loc),normTxt(o.mod),o.v].join("|");if(seen.has(k))return false;seen.add(k);return true;});
 }
-function compOffersFor(model){const k=modelKey(model);return compOffersAll().filter(o=>(normTxt(o.mod)+" "+normTxt(o.yalla)).split(/[^a-z0-9]+/).includes(k)||normTxt(o.yalla)===normTxt(model));}
+function compAssign(){
+  const ms=compModels(),tok=t=>normTxt(t).split(/[^a-z0-9]+/).filter(Boolean),map={};ms.forEach(m=>map[m.modelo]=[]);
+  for(const o of compOffersAll()){
+    let target=null;
+    if(o.yalla){const y=normTxt(o.yalla);target=(ms.find(m=>normTxt(m.modelo)===y)||ms.find(m=>y.startsWith(normTxt(m.modelo))))?.modelo||null;}
+    if(!target){const ot=new Set(tok(o.mod));const cands=ms.filter(m=>ot.has(modelKey(m.modelo).split(" ")[0]));
+      if(cands.length){const sc=m=>tok(m.modelo).slice(1).filter(t=>ot.has(t)).length-(/dream|rent/i.test(m.modelo)?5:0);
+        target=cands.sort((a,b)=>sc(b)-sc(a)||a.modelo.length-b.modelo.length)[0].modelo;}}
+    if(target)map[target].push(o);}
+  return map;
+}
+function compOffersFor(model){return compAssign()[model]||[];}
 const dKey=d=>d.split("/").reverse().join("");
+function compAllView(){
+  const ms=compModels(),A=compAssign(),dk=d=>d.split("/").reverse().join("");
+  const fc=state.compAllCat||"all",only=state.compAllOnly!==false,cats=[...new Set(ms.map(m=>m.cat))];
+  const latest=offs=>{const r=offs.filter(o=>!o.promo&&!o.exp);const by={};r.forEach(o=>{const k=o.loc;if(!by[k]||dk(o.d)>dk(by[k].d)||(o.d===by[k].d&&o.v<by[k].v))by[k]=o;});return by;};
+  const rows=ms.filter(m=>fc==="all"||m.cat===fc).map(m=>{const y=pBR(m.p5),by=latest(A[m.modelo]),lst=Object.values(by),best=lst.length?lst.reduce((a,b)=>a.v<b.v?a:b):null;
+    return{m,y,by,best,gap:best&&y?(y/best.v-1)*100:null,n:A[m.modelo].length};}).filter(r=>!only||r.best);
+  rows.sort((a,b)=>(b.gap??-999)-(a.gap??-999));
+  const cnt={};rows.forEach(r=>Object.keys(r.by).forEach(l=>cnt[l]=(cnt[l]||0)+1));
+  const locs=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]).slice(0,8);
+  const gcol=g=>g==null?"var(--muted)":g>=15?"var(--red)":g>=5?"var(--amber,#FFC24B)":g<=-5?"var(--green)":"var(--txt)";
+  const chip=(v,l)=>`<button class="btn" style="height:28px;font-size:11.5px;${fc===v?'border-color:var(--y);color:var(--y)':''}" onclick="state.compAllCat='${v}';render()">${l}</button>`;
+  const withRef=rows.filter(r=>r.gap!=null),above=withRef.filter(r=>r.gap>=15).length,below=withRef.filter(r=>r.gap<=-5).length,avg=withRef.length?withRef.reduce((a,r)=>a+r.gap,0)/withRef.length:null;
+  return`<div class="card" style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">${chip("all","Todas as categorias")}${cats.map(c=>chip(c,c)).join("")}
+    <label style="margin-left:auto;font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center"><input type="checkbox" ${only?"checked":""} onchange="state.compAllOnly=this.checked;render()"> só carros com concorrente</label></div>
+  <div class="grid kpis k4">
+    ${kpi({lbl:"Carros comparados",v:[withRef.length,null],f:num,sub:"de "+ms.filter(m=>fc==="all"||m.cat===fc).length+" na frota"})}
+    ${kpi({lbl:"Gap médio Yalla",v:[avg,null],f:v=>(v>0?"+":"")+dec(v)+"%",hl:true,sub:"vs concorrente mais barato"})}
+    ${kpi({lbl:"Yalla 15%+ mais cara",v:[above,null],f:num,up:false,sub:"carros"})}
+    ${kpi({lbl:"Yalla mais barata",v:[below,null],f:num,sub:"carros (5%+ abaixo)"})}
+  </div>
+  ${T("Todos os carros x concorrentes — último preço recorrente de cada locadora",`<div class="tbl-wrap"><table class="cmp-all"><thead><tr><th>Carro Yalla</th><th class="num">Yalla 5 mil</th><th class="num">Mais barato</th><th class="num">Gap</th>${locs.map(l=>`<th class="num">${l}</th>`).join("")}</tr></thead><tbody>
+    ${rows.map(r=>`<tr><td><a href="javascript:void 0" onclick="state.compModel='${r.m.modelo.replace(/'/g,"\\'")}';state.compView='modelo';render()" style="color:var(--txt);font-weight:700">${r.m.modelo}</a><div style="font-size:10.5px;color:var(--dim)">${r.m.cat} · ${r.n} ofertas</div></td>
+      <td class="num"><b style="color:var(--y)">${r.y?brl(r.y):"—"}</b></td>
+      <td class="num">${r.best?`${brl(r.best.v)}<div style="font-size:10.5px;color:var(--dim)">${r.best.loc} · ${r.best.d}</div>`:"—"}</td>
+      <td class="num"><b style="color:${gcol(r.gap)}">${r.gap==null?"—":(r.gap>0?"+":"")+dec(r.gap,0)+"%"}</b></td>
+      ${locs.map(l=>{const o=r.by[l];if(!o)return'<td class="num" style="color:var(--dim)">—</td>';const g=r.y?(r.y/o.v-1)*100:null;return`<td class="num" title="${(o.mod||"").replace(/"/g,"'")} · ${o.d} · ${o.sheet}">${brl(o.v)}<div style="font-size:10.5px;color:${gcol(g)}">${g==null?"":(g>0?"Yalla +":"Yalla ")+dec(g,0)+"%"}</div></td>`;}).join("")}</tr>`).join("")}
+  </tbody></table></div><p style="font-size:11px;color:var(--dim);margin-top:10px">Para cada locadora, o preço mais recente encontrado nas abas Ofertas, Radar e Auditoria (promoções de 1ª semana e anúncios expirados ficam de fora). Gap = quanto a Yalla está acima (+) ou abaixo (−) do concorrente. Vermelho: Yalla 15%+ mais cara · amarelo: 5 a 15% · verde: Yalla 5%+ mais barata. Passe o mouse no preço para ver a oferta; clique no carro para ver o histórico.</p>`)}`;
+}
 function compModelView(){
   const ms=compModels();if(!ms.length)return'<div class="empty">Não encontrei a aba Frota Yalla na planilha.</div>';
   const sel=state.compModel&&ms.some(m=>m.modelo===state.compModel)?state.compModel:(ms.find(m=>normTxt(m.modelo)==="argo")||ms[0]).modelo;state.compModel=sel;
@@ -2148,7 +2188,8 @@ concorrencia(){
     <a class="btn" href="#importar">Importar nova planilha</a>
     <button class="btn" onclick="downloadComp()">Baixar dados</button>
   </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">${vt("geral","Visão geral")}${vt("modelo","Por modelo (histórico de cada carro)")}${vt("planilha","Planilha completa · todas as abas e consultas")}</div>`;
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">${vt("geral","Visão geral")}${vt("todos","Todos os carros x concorrentes")}${vt("modelo","Por modelo (histórico de cada carro)")}${vt("planilha","Planilha completa · todas as abas e consultas")}</div>`;
+  if(V==="todos")return HEAD+compAllView();
   if(V==="modelo")return HEAD+compModelView();
   if(V==="planilha")return HEAD+compSheetView();
   return`${HEAD}  <div class="alerts" style="grid-template-columns:1fr">${C.notes.slice(1).map(n=>`<div class="alert info">${svg("info")}<div><span style="color:var(--txt)">${n}</span></div></div>`).join("")}</div>
