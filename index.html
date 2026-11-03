@@ -701,6 +701,7 @@ function sourcesStatus(){
 }
 const SRC_STYLE={auto:["var(--green)","var(--green-soft)","AUTOMÁTICO"],cmd:["var(--blue,#6EA8FE)","rgba(110,168,254,.14)","POR COMANDO"],manual:["var(--amber,#FFC24B)","rgba(255,194,75,.14)","MANUAL"],off:["var(--muted)","var(--navy4)","DESLIGADO"]};
 function srcTag(g){const[c,b,l]=SRC_STYLE[g];return`<span style="font:700 10px Montserrat;letter-spacing:.08em;color:${c};background:${b};padding:3px 7px;border-radius:5px;white-space:nowrap">${l}</span>`;}
+const prioCls=t=>{t=normTxt(t);return /alta|risco/.test(t)?"bad":/checar|validacao/.test(t)?"mid":"neu";};
 const MEDIA_COLORS=()=>({"Meta Ads":Y,"Google Ads":B,"ChatGPT Ads":"#10A37F","Influenciadores":"#F687B3"});
 /* gasto por mídia mês a mês; null = sem dado lançado */
 function mediaMonthly(all){
@@ -1463,7 +1464,10 @@ alertas(){
   return`<div class="summary"><div class="badge">Em<b>30s</b></div><ol>${(state.summary||[]).map(x=>`<li>${x}</li>`).join("")}</ol></div>
   ${sec("Pontos de atenção",warn.length?warn.length+" para agir":"")}
   ${warn.length?alertsHTML(warn,true):'<div class="empty">Nada pedindo ação agora.</div>'}
-  ${info.length?sec("Para conferir",info.length+" informativos")+alertsHTML(info,true):""}`;
+  ${info.length?sec("Para conferir",info.length+" informativos")+alertsHTML(info,true):""}
+  ${sec("Prioridades de precificação","concorrência · consulta "+(COMP.date||"—")+" · orientativo — não é recomendação de desconto sem margem")}
+  <div class="grid g3">${COMP.priorities.map(p=>`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px"><b style="font:700 20px 'Barlow Condensed';text-transform:uppercase">${p.model}</b><span class="chip ${prioCls(p.tag)}">${p.tag}</span></div><p style="font-size:12.5px;color:var(--muted)">${p.text}</p></div>`).join("")}</div>
+  ${COMP.priorities.length?`<p style="font-size:12px;margin-top:8px"><a href="#concorrencia" style="color:var(--y)">Ver comparativo completo na aba Concorrência</a></p>`:""}`;
 },
 geral_after(){
   const MD=mediaMonthly(),RS=resMonthly(),C=MEDIA_COLORS(),ri=m=>RS.months.indexOf(m);
@@ -2220,8 +2224,6 @@ concorrencia(){
     ${kpi({lbl:"Gap médio Yalla",v:[sm.gap*100,null],f:v=>(v>0?"+":"")+dec(v)+"%",sub:"vs referência do mercado",hl:true})}
     ${kpi({lbl:"Acima de 15%",v:[sm.above,null],f:num,sub:sm.below+" modelos abaixo do mercado"})}
   </div>
-  ${sec("Prioridades de precificação","orientativo — não é recomendação de desconto sem margem")}
-  <div class="grid g3">${C.priorities.map(p=>`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px"><b style="font:700 20px 'Barlow Condensed';text-transform:uppercase">${p.model}</b><span class="chip ${tagCls(p.tag)}">${p.tag}</span></div><p style="font-size:12.5px;color:var(--muted)">${p.text}</p></div>`).join("")}</div>
   ${sec("Yalla x mercado por modelo","gap = quanto a semanal Yalla está acima (+) ou abaixo (−) da referência")}
   <div class="grid g-wide">
     ${T("Gap por modelo",`<div class="chart-box" style="height:${Math.max(220,C.comparativo.filter(c=>c.gapPct!=null).length*24+40)}px"><canvas id="cGap"></canvas></div>`,"vermelho ≥ 15% · verde = abaixo")}
