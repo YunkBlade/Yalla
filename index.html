@@ -933,6 +933,8 @@ function compSheetDate(n){
   const b=n.match(/(\d{2})x(\d{2})\s*$/);if(!b)return null;
   const mm=Object.keys(COMP_RAW||{}).map(k=>(k.match(/\d{2}-(\d{2})\s*$/)||[])[1]).filter(Boolean),freq={};mm.forEach(x=>freq[x]=(freq[x]||0)+1);
   const mo=Object.keys(freq).sort((x,y)=>freq[y]-freq[x])[0]||(COMP.date||"").slice(3,5)||"10";return b[2]+"/"+mo;}
+const PLANS=[["5","5.000 km/mês"],["6","6.000 km/mês"],["livre","KM livre"]];
+const planBtns=(key,cur)=>PLANS.map(([v,l])=>`<button class="btn" style="height:28px;font-size:11.5px;${cur===v?'border-color:var(--y);color:var(--y)':''}" onclick="state.${key}='${v}';render()">${l}</button>`).join("");
 function compModels(){
   const rows=COMP_RAW["Frota Yalla"]||[],h=rawHeader(rows,r=>r.includes("Modelo Yalla"));if(h<0)return[];
   const H=rows[h],ix=k=>H.findIndex(x=>normTxt(x).startsWith(normTxt(k)));
@@ -941,16 +943,16 @@ function compModels(){
   return out;
 }
 const modelKey=m=>{const w=normTxt(m).split(/\s+/);return w[0]==="eletrico"?normTxt(m):w[0];};
-function compYallaHistory(model){
-  const k=normTxt(model),pts={};
+function compYallaHistory(model,plan){
+  plan=plan||"5";const k=normTxt(model),pts={};
   const add=(d,v,src)=>{if(v==null||!d)return;d=d.slice(0,5);if(!pts[d])pts[d]={d,v,src};};
   const yr="2026";
   /* atual (Frota) */
-  const cur=compModels().find(x=>normTxt(x.modelo)===k);if(cur&&COMP.date)add(COMP.date.slice(0,5),pBR(cur.p5),"Frota Yalla (atual)");
+  const cur=compModels().find(x=>normTxt(x.modelo)===k);if(cur&&COMP.date)add(COMP.date.slice(0,5),pBR(plan==="6"?cur.p6:plan==="livre"?cur.livre:cur.p5),"Frota Yalla (atual)");
   for(const n of Object.keys(COMP_RAW).filter(n=>/^Historico/i.test(n)).reverse()){
     const rows=COMP_RAW[n],h=rawHeader(rows,r=>r.some(c=>/^modelo/i.test(c)));if(h<0)continue;const H=rows[h];
     const mcols=H.map((c,i)=>/^modelo/i.test(c)?i:-1).filter(i=>i>=0);
-    const pcols=H.map((c,i)=>{const d=c.match(/(\d{2}\/\d{2})/);if(!d)return null;if(/6 mil|livre|reserva|varia|dif/i.test(c))return null;if(/5 mil|^yalla|^home/i.test(c))return{i,d:d[1]};return null;}).filter(Boolean);
+    const pcols=H.map((c,i)=>{const d=c.match(/(\d{2}\/\d{2})/);if(!d)return null;if(/reserva|varia|dif/i.test(c))return null;const is6=/6 mil/i.test(c),isL=/livre/i.test(c),is5=!is6&&!isL&&/5 mil|^yalla|^home/i.test(c);if((plan==="5"&&is5)||(plan==="6"&&is6)||(plan==="livre"&&isL))return{i,d:d[1]};return null;}).filter(Boolean);
     for(const r of rows.slice(h+1)){if(!mcols.some(i=>normTxt(r[i])===k))continue;pcols.forEach(c=>add(c.d,pBR(r[c.i]),n));}
   }
   return Object.values(pts).sort((a,b)=>a.d.split("/").reverse().join("").localeCompare(b.d.split("/").reverse().join("")));
@@ -966,7 +968,7 @@ function compOffersAll(){
     const sd=compSheetDate(n),defD=sd||(COMP.date||"").slice(0,5);
     for(const r of rows.slice(h+1)){if(r.filter(Boolean).length<3)continue;const loc=r[iL];if(!loc||/^yalla/i.test(loc)||(iT>=0&&/^yalla/i.test(r[iT])))continue;
       const v=pBR(r[iP]);if(v==null||v<100)continue;const d=(iD>=0&&/\d{2}\/\d{2}/.test(r[iD])?r[iD].match(/\d{2}\/\d{2}/)[0]:defD);
-      out.push({d,loc,mod:iM>=0?r[iM]:"",yalla:iY>=0?r[iY]:"",v,sheet:n,promo:r.some(c=>/primeira semana|1ª semana|promoç/i.test(c)),exp:r.some(c=>/expirad/i.test(c))});}
+      out.push({d,loc,mod:iM>=0?r[iM]:"",yalla:iY>=0?r[iY]:"",v,sheet:n,promo:H.some((hc,ci)=>/tarifa|equival|status|situa|benchmark/i.test(hc)&&/primeira semana|promoç|promo inicial/i.test(r[ci]||"")&&!/recorrente|após promo/i.test(r[ci]||""))&&!H.some((hc,ci)=>/tarifa/i.test(hc)&&/recorrente/i.test(r[ci]||"")),exp:r.some(c=>/expirad/i.test(c))});}
   }
   const seen=new Set();return out.filter(o=>{const k=[o.d,normTxt(o.loc),normTxt(o.mod),o.v].join("|");if(seen.has(k))return false;seen.add(k);return true;});
 }
@@ -1014,7 +1016,7 @@ function compAllView(){
 function compModelView(){
   const ms=compModels();if(!ms.length)return'<div class="empty">Não encontrei a aba Frota Yalla na planilha.</div>';
   const sel=state.compModel&&ms.some(m=>m.modelo===state.compModel)?state.compModel:(ms.find(m=>normTxt(m.modelo)==="argo")||ms[0]).modelo;state.compModel=sel;
-  const m=ms.find(x=>x.modelo===sel),hist=compYallaHistory(sel),offs=compOffersFor(sel).sort((a,b)=>dKey(b.d).localeCompare(dKey(a.d))||a.v-b.v);
+  const m=ms.find(x=>x.modelo===sel),hist=compYallaHistory(sel,"5"),h6=compYallaHistory(sel,"6"),hL=compYallaHistory(sel,"livre"),offs=compOffersFor(sel).sort((a,b)=>dKey(b.d).localeCompare(dKey(a.d))||a.v-b.v);
   const cmp=COMP.comparativo.filter(c=>normTxt(c.modelo)===normTxt(sel));
   const cats=[...new Set(ms.map(x=>x.cat))];
   const opt=`<select class="edf" style="height:36px;min-width:260px" onchange="state.compModel=this.value;render()">${cats.map(c=>`<optgroup label="${c}">${ms.filter(x=>x.cat===c).map(x=>`<option ${x.modelo===sel?"selected":""}>${x.modelo}</option>`).join("")}</optgroup>`).join("")}</select>`;
@@ -1035,18 +1037,20 @@ function compModelView(){
     ${kpi({lbl:"Diferença Yalla x menor",v:[best&&pBR(m.p5)?pBR(m.p5)-best.v:null,null],f:v=>(v>0?"+":v<0?"−":"")+brl(Math.abs(v)),up:false,sub:best&&pBR(m.p5)?pct((pBR(m.p5)/best.v-1)*100)+" vs "+best.loc:""})}
   </div>
   <div class="grid g-wide">
-    ${T("Preço da Yalla e do concorrente mais barato por consulta",'<div class="chart-box" style="height:260px"><canvas id="cModelHist"></canvas></div><p style="font-size:11px;color:var(--dim);margin-top:8px">Yalla = plano 5.000 km/mês. 12 e 13/10 vieram da vitrine Home; as demais do Trust/reservar — canais diferentes podem ter preços diferentes.</p>'+ladder)}
+    ${T("Preço da Yalla (5 mil, 6 mil e KM livre) e do concorrente mais barato",'<div class="chart-box" style="height:260px"><canvas id="cModelHist"></canvas></div><p style="font-size:11px;color:var(--dim);margin-top:8px">Yalla = plano 5.000 km/mês. 12 e 13/10 vieram da vitrine Home; as demais do Trust/reservar — canais diferentes podem ter preços diferentes.</p>'+ladder)}
     ${T("Ficha do modelo",`${field("Categoria",m.cat)}${field("Marca",m.marca)}${field("Motorização",m.motor)}${field("Câmbio",m.cambio)}${field("Versão / ressalva",m.versao)}${field("5.000 km/mês",m.p5)}${field("6.000 km/mês",m.p6)}${field("KM livre",m.livre)}${field("Produto",m.produto)}${field("Dream",m.dream)}${field("Rent",m.rent)}${field("Reserva histórica",m.hist)}${field("Revisão",m.revisao)}`)}
   </div>
-  ${T("Histórico de preço da Yalla",hist.length?`<div class="tbl-wrap"><table><thead><tr><th>Consulta</th><th class="num">R$/semana</th><th class="num">vs consulta anterior</th><th>Aba de origem</th></tr></thead><tbody>${hist.map((h,i)=>{const p=i?hist[i-1].v:null,d=p!=null?h.v-p:null;return`<tr><td><b>${h.d}</b></td><td class="num">${brl(h.v,2)}</td><td class="num ${d>0?'a':d<0?'g':''}">${d==null?"—":d===0?"igual":(d>0?"▲ +":"▼ −")+brl(Math.abs(d),2)}</td><td style="color:var(--muted)">${h.src}</td></tr>`}).join("")}</tbody></table></div>`:'<div class="empty">Sem histórico para este modelo.</div>')}
+  ${T("Histórico de preço da Yalla — 5 mil, 6 mil e KM livre",hist.length||h6.length||hL.length?(()=>{const ds=[...new Set([...hist,...h6,...hL].map(h=>h.d))].sort((a,b)=>dKey(a).localeCompare(dKey(b)));const g=(arr,d)=>arr.find(h=>h.d===d)?.v??null;
+    const cell=(arr,d,i)=>{const v=g(arr,d),p=i?g(arr,ds[i-1]):null,df=v!=null&&p!=null?v-p:null;return`<td class="num">${v!=null?brl(v,2):"—"}${df?`<div style="font-size:10.5px;color:${df>0?"var(--amber,#FFC24B)":"var(--green)"}">${df>0?"▲ +":"▼ −"}${brl(Math.abs(df))}</div>`:""}</td>`;};
+    return`<div class="tbl-wrap"><table><thead><tr><th>Consulta</th><th class="num">5.000 km/mês</th><th class="num">6.000 km/mês</th><th class="num">KM livre</th><th>Aba de origem</th></tr></thead><tbody>${ds.map((d,i)=>`<tr><td><b>${d}</b></td>${cell(hist,d,i)}${cell(h6,d,i)}${cell(hL,d,i)}<td style="color:var(--muted)">${(hist.find(h=>h.d===d)||h6.find(h=>h.d===d)||hL.find(h=>h.d===d)).src}</td></tr>`).join("")}</tbody></table></div><p style="font-size:11px;color:var(--dim);margin-top:8px">Setas = mudança contra a consulta anterior. Algumas abas de histórico só registram o plano de 5 mil.</p>`;})():'<div class="empty">Sem histórico para este modelo.</div>')}
   ${T("Ofertas de concorrentes para "+sel+" — todas as consultas",offs.length?`<div class="tbl-wrap"><table><thead><tr><th>Consulta</th><th>Locadora</th><th>Oferta</th><th class="num">R$/semana</th><th class="num">Yalla x oferta</th><th>Aba</th></tr></thead><tbody>${offs.map(o=>{const y=pBR(m.p5),d=y?y-o.v:null;return`<tr><td><b>${o.d}</b></td><td>${o.loc}</td><td style="color:var(--muted)">${o.mod||"—"}${o.promo?' <span class="chip neu">promoção 1ª semana</span>':""}${o.exp?' <span class="chip neu">expirado</span>':""}</td><td class="num">${brl(o.v,2)}</td><td class="num ${d>0?'a':'g'}">${d==null?"—":(d>0?"+":"−")+brl(Math.abs(d))+" ("+pct((y/o.v-1)*100,0)+")"}</td><td style="color:var(--dim)">${o.sheet}</td></tr>`}).join("")}</tbody></table></div><p style="font-size:11px;color:var(--dim);margin-top:8px">Busca pelo nome do modelo nas abas Ofertas, Radar e Auditoria. Promoções de 1ª semana e anúncios expirados aparecem marcados e ficam fora do “menor concorrente” e do gráfico. Versões, franquia de km e caução podem diferir.</p>`:'<div class="empty">Nenhuma oferta de concorrente encontrada para este modelo.</div>')}
   ${cmp.length?T("Leitura da planilha (Comparativo)",cmp.map(c=>`<div class="stat"><span>${c.conc||"—"} ${c.concModelo?"· "+c.concModelo:""}</span><b>${c.concPreco!=null?brl(c.concPreco):"—"}</b></div><p style="font-size:12px;color:var(--muted);margin:6px 0 10px">${c.obs||c.equiv||""}</p>`).join("")):""}`;
 }
 function compModelChart(){
-  const sel=state.compModel;if(!sel)return;const hist=compYallaHistory(sel),offs=compOffersFor(sel);
-  const ds=[...new Set([...hist.map(h=>h.d),...offs.map(o=>o.d)])].sort((a,b)=>dKey(a).localeCompare(dKey(b)));
+  const sel=state.compModel;if(!sel)return;const hist=compYallaHistory(sel,"5"),h6=compYallaHistory(sel,"6"),hL=compYallaHistory(sel,"livre"),offs=compOffersFor(sel);
+  const ds=[...new Set([...hist.map(h=>h.d),...h6.map(h=>h.d),...hL.map(h=>h.d),...offs.map(o=>o.d)])].sort((a,b)=>dKey(a).localeCompare(dKey(b)));
   const minBy=d=>{const v=offs.filter(o=>o.d===d&&!o.promo&&!o.exp).map(o=>o.v);return v.length?Math.min(...v):null;};
-  chart("cModelHist",{type:"line",data:{labels:ds,datasets:[{label:"Yalla",data:ds.map(d=>hist.find(h=>h.d===d)?.v??null),borderColor:Y,backgroundColor:Y,tension:.25,pointRadius:4,spanGaps:true},{label:"Concorrente mais barato",data:ds.map(minBy),borderColor:W,backgroundColor:W,borderDash:[5,4],tension:.25,pointRadius:4,spanGaps:true}]},
+  chart("cModelHist",{type:"line",data:{labels:ds,datasets:[{label:"Yalla 5 mil",data:ds.map(d=>hist.find(h=>h.d===d)?.v??null),borderColor:Y,backgroundColor:Y,tension:.25,pointRadius:4,spanGaps:true},{label:"Yalla 6 mil",data:ds.map(d=>h6.find(h=>h.d===d)?.v??null),borderColor:AM,backgroundColor:AM,borderDash:[2,2],tension:.25,pointRadius:3,spanGaps:true},{label:"Yalla KM livre",data:ds.map(d=>hL.find(h=>h.d===d)?.v??null),borderColor:"#C48CFF",backgroundColor:"#C48CFF",tension:.25,pointRadius:3,spanGaps:true},{label:"Concorrente mais barato",data:ds.map(minBy),borderColor:W,backgroundColor:W,borderDash:[5,4],tension:.25,pointRadius:4,spanGaps:true}]},
     options:{maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.raw==null?"—":brl(c.raw,2)}`}}},scales:{y:{ticks:{callback:v=>"R$ "+num(v)}},x:{grid:{display:false}}}}});
 }
 function compSheetView(){
@@ -2253,8 +2257,8 @@ concorrencia(){
     ${T("Yalla — desde a 1ª consulta da planilha",yChg.length?`<div class="tbl-wrap"><table><thead><tr><th>Modelo</th><th class="num">Antes</th><th class="num">Agora</th><th class="num">Var.</th></tr></thead><tbody>
       ${yChg.map(c=>{const v=(c.to-c.from)/c.from*100;return`<tr><td><b>${c.m}</b><br><small style="color:var(--dim)">${c.d1} → ${c.d2}</small></td><td class="num">${brl(c.from)}</td><td class="num">${brl(c.to)}</td><td class="num">${v>0?"▲":"▼"} ${pct(Math.abs(v))}</td></tr>`}).join("")}</tbody></table></div>`:'<div class="empty">Nenhum preço da Yalla mudou entre as duas últimas consultas.</div>')}
   </div>
-  ${sec("Evolução de preços Yalla","semanal 5.000 km/mês nas consultas registradas")}
-  <div class="card"><h3>Preço por consulta
+  ${sec("Evolução de preços Yalla","semanal "+(PLANS.find(x=>x[0]===(state.compPlan||"5"))[1])+" nas consultas registradas")}
+  <div class="card"><h3>Preço por consulta<span style="display:flex;gap:6px;margin-left:auto;margin-right:10px">${planBtns("compPlan",state.compPlan||"5")}</span>
     <label class="ctl" style="height:30px">Modelos <select onchange="state.compHist=this.value;render()">
       ${[["prio","Prioridades"],...cats.map(c=>[c,c])].map(([v,l])=>`<option value="${v}" ${(state.compHist||"prio")===v?"selected":""}>${l}</option>`).join("")}</select></label></h3>
     <div class="chart-box"><canvas id="cYHist"></canvas></div>
@@ -2291,9 +2295,11 @@ concorrencia_after(){
     options:{indexAxis:"y",maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:x=>{const c=g[x.dataIndex];return`${c.modelo}: Yalla ${brl(c.yalla)} vs ${c.conc} ${brl(c.concPreco,c.concPreco%1?2:0)} (${x.raw>0?"+":""}${dec(x.raw)}%)`}}}},
       scales:{x:{ticks:{callback:v=>v+"%"}},y:{grid:{display:false},ticks:{autoSkip:false}}}}});
   const sel=state.compHist||"prio";
-  let models=sel==="prio"?C.priorities.map(p=>p.model).filter(m=>C.yHist[m]):C.frota.filter(f=>f.cat===sel).map(f=>f.modelo).filter(m=>C.yHist[m]&&Object.keys(C.yHist[m]).length>1);
-  models=[...new Set(models)].slice(0,10);
-  const dates=[...new Set(models.flatMap(m=>Object.keys(C.yHist[m])))].sort((a,b)=>dateKey(a).localeCompare(dateKey(b)));
+  const plan=state.compPlan||"5",HP={};compModels().forEach(m=>{const h=compYallaHistory(m.modelo,plan);if(h.length)HP[m.modelo]=Object.fromEntries(h.map(x=>[x.d,x.v]));});
+  const fm=compModels(),byName=n=>{const k=normTxt(n).replace(/^byd /,"");return fm.find(m=>normTxt(m.modelo)===k)?.modelo;};
+  let models=sel==="prio"?C.priorities.map(p=>byName(p.model)).filter(m=>m&&HP[m]):fm.filter(f=>f.cat===sel).map(f=>f.modelo).filter(m=>HP[m]&&Object.keys(HP[m]).length>1);
+  models=[...new Set(models)].slice(0,10);C.yHist=HP;
+  const dates=[...new Set(models.flatMap(m=>Object.keys(HP[m])))].sort((a,b)=>dateKey(a).localeCompare(dateKey(b)));
   const cols=[Y,B,G,AM,"#C48CFF",RD,"#4FD1C5","#F687B3",M_,W];
   chart("cYHist",{type:"line",data:{labels:dates,datasets:models.map((m,i)=>({label:m,data:dates.map(d=>C.yHist[m][d]??null),borderColor:cols[i%cols.length],backgroundColor:cols[i%cols.length],tension:.25,pointRadius:3,spanGaps:true}))},
     options:{maintainAspectRatio:false,interaction:{mode:"index",intersect:false},scales:{y:moneyAxis,x:{grid:{display:false}}}}});
