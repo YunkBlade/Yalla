@@ -4,6 +4,15 @@ const SHEET_ID = "1kVjeFlQ6z9mJeZrR8CExD8WGwMkB6C8e4GQPFrxOSMk";
 
 module.exports = async (req, res) => {
   try {
+    const sheet = req.query && req.query.sheet;
+    if (sheet) {
+      const c = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet)}`);
+      res.statusCode = c.status;
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader("Cache-Control", "no-store");
+      res.end(await c.text());
+      return;
+    }
     const r = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=xlsx`, { redirect: "follow" });
     const ct = r.headers.get("content-type") || "";
     if (!r.ok || !ct.includes("spreadsheetml")) {
