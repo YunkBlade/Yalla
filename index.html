@@ -878,7 +878,7 @@ async function syncCompLive(manual){
   try{
     const r=await fetch("/api/concorrentes"+(manual?"?t="+Date.now():""),{cache:manual?"no-store":"default"});
     if(!r.ok){let m="erro "+r.status;try{m=(await r.json()).error||m}catch(e){}throw new Error(m);}
-    const buf=await r.arrayBuffer();const d=parseCompetition(XLSX,buf,"Google Sheets");setCompRaw(XLSX,buf);
+    const buf=await r.arrayBuffer();setCompRaw(XLSX,buf);const d=compFillComparativo(parseCompetition(XLSX,buf,"Google Sheets"));
     if(!d.comparativo.length&&!d.ofertas.length)throw new Error("não encontrei as abas Comparativo e Ofertas Concorrentes");
     const changed=JSON.stringify(d)!==JSON.stringify(COMP);
     COMP=d;const sm=compSummary(d);COMP_SNAPS=COMP_SNAPS.filter(x=>x.date!==sm.date).concat(sm);
@@ -1066,6 +1066,19 @@ function compSheetView(){
   return`<div class="card" style="margin-bottom:14px">${order.map(g=>`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0"><span style="font:700 11px Montserrat;letter-spacing:.08em;color:${g==="Visão atual"?"var(--green)":"var(--muted)"};min-width:110px;text-transform:uppercase">${g==="Visão atual"?g:"Consulta "+g}</span>${groups[g].map(chip).join("")}</div>`).join("")}
     <div style="display:flex;gap:10px;align-items:center;margin-top:12px"><input class="edf" style="height:34px;flex:1;max-width:420px;color:var(--txt)" placeholder="Buscar nesta aba (modelo, locadora, valor…)" oninput="const q=this.value.toLowerCase();document.querySelectorAll('.sheet-t tbody tr').forEach(tr=>tr.style.display=!q||tr.textContent.toLowerCase().includes(q)?'':'none')"><a href="${COMP_SHEET_URL}" target="_blank" rel="noopener" style="color:var(--y);font-size:12px">abrir no Google Sheets</a></div></div>
   <div class="card">${html||'<div class="empty">Aba vazia.</div>'}</div>`;
+}
+function compFillComparativo(d){
+  if(d.comparativo.some(c=>c.concPreco!=null))return d;
+  const prev=COMP;COMP=d;
+  try{const A=compAssign();
+    d.comparativo=compModels().map(m=>{const y=pBR(m.p5),rec=(A[m.modelo]||[]).filter(o=>!o.promo&&!o.exp),by={};
+      rec.forEach(o=>{if(!by[o.loc]||dKey(o.d)>dKey(by[o.loc].d)||(o.d===by[o.loc].d&&o.v<by[o.loc].v))by[o.loc]=o;});
+      const L=Object.values(by),b=L.length?L.reduce((a,c)=>a.v<c.v?a:c):null;
+      return{cat:m.cat,modelo:m.modelo,yalla:y,conc:b?b.loc:"Sem oferta comparável",concModelo:b?b.mod:"",concPreco:b&&y?b.v:null,gap:b&&y?y-b.v:null,gapPct:b&&y?y/b.v-1:null,
+        equiv:b?"Calculado pelo painel":"",obs:b?`Menor preço recorrente encontrado (${b.d} · aba ${b.sheet}). A aba Comparativo da planilha não trouxe as colunas de concorrente nesta consulta.`:"",fonte:"",id:"",status:"",produto:m.produto};});
+    d.comparativoAuto=true;
+  }catch(e){}finally{COMP=prev;}
+  return d;
 }
 function compSummary(C){
   const refs=C.comparativo.filter(c=>c.concPreco!=null&&c.gapPct!=null);
@@ -2198,7 +2211,8 @@ concorrencia(){
   if(V==="todos")return HEAD+compAllView();
   if(V==="modelo")return HEAD+compModelView();
   if(V==="planilha")return HEAD+compSheetView();
-  return`${HEAD}  <div class="alerts" style="grid-template-columns:1fr">${C.notes.slice(1).map(n=>`<div class="alert info">${svg("info")}<div><span style="color:var(--txt)">${n}</span></div></div>`).join("")}</div>
+  return`${HEAD}  ${C.comparativoAuto?`<div class="alerts" style="grid-template-columns:1fr"><div class="alert warn">${svg("alert")}<div><b>A aba Comparativo da planilha veio sem as colunas de concorrente nesta consulta (${C.date||"—"})</b><span>O painel calculou o comparativo sozinho: para cada carro, o menor preço recorrente das abas Ofertas, Radar e Auditoria. Vale conferir a aba Comparativo no Google Sheets.</span></div></div></div>`:""}
+  <div class="alerts" style="grid-template-columns:1fr">${C.notes.slice(1).map(n=>`<div class="alert info">${svg("info")}<div><span style="color:var(--txt)">${n}</span></div></div>`).join("")}</div>
   <div class="grid kpis">
     ${kpi({lbl:"Modelos na vitrine",v:[sm.models,null],f:num,sub:"frota Yalla"})}
     ${kpi({lbl:"Ofertas mapeadas",v:[sm.offers,null],f:num,sub:sm.rechecked+" reconsultadas"})}
@@ -2653,7 +2667,7 @@ async function importComp(input){
   const f=input.files[0],out=input.parentNode.querySelector(".okf");if(!f)return;
   if(typeof XLSX==="undefined"){out.style.color="var(--red)";out.textContent="Leitor de planilha não carregou. Verifique a conexão.";return;}
   try{
-    const fb=await f.arrayBuffer();const d=parseCompetition(XLSX,fb,f.name);setCompRaw(XLSX,fb);
+    const fb=await f.arrayBuffer();setCompRaw(XLSX,fb);const d=compFillComparativo(parseCompetition(XLSX,fb,f.name));
     if(!d.comparativo.length&&!d.ofertas.length)throw new Error("Não encontrei as abas Comparativo e Ofertas Concorrentes.");
     COMP=d;const sm=compSummary(d);COMP_SNAPS=COMP_SNAPS.filter(x=>x.date!==sm.date).concat(sm);
     try{localStorage.setItem("yalla-comp",JSON.stringify(d));localStorage.setItem("yalla-comp-snaps",JSON.stringify(COMP_SNAPS));}catch(e){}
@@ -2774,6 +2788,7 @@ document.querySelectorAll("#themeSw button").forEach(b=>b.onclick=()=>{setTheme(
 setTheme(document.documentElement.dataset.theme||"navy");
 try{if(localStorage.getItem("yalla-explain")==="1"){document.body.classList.add("explain");}}catch(e){}
 window.addEventListener("hashchange",render);
+try{if(!COMP.comparativo.some(c=>c.concPreco!=null))COMP=compFillComparativo(COMP);}catch(e){}
 render();
 setTimeout(()=>syncCompLive(false),400);
 </script>
