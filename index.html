@@ -573,7 +573,7 @@ const META_LINES=["TRUST","SITE","DREAM","RENT","GREEN","CARGAS","OUTRAS"];
 const LINE_COLORS=()=>({TRUST:Y,SITE:B,DREAM:"#C48CFF",RENT:"#4FD1C5",GREEN:G,CARGAS:AM,OUTRAS:M_});
 const STATUS_GROUPS={"Contrato fechado":["Contratos Comissionáveis"],"Em andamento":["Contrato Enviado","Aprovado","Acordo Pendente","Pendente Documento","Segunda Validação"],"Clientes futuros":["Clientes Futuros"],"Reprovado":["Reprovado"],"Perdido":["Lead Perdido"]};
 const sortM=a=>a.sort((x,y)=>monthSortKey(x).localeCompare(monthSortKey(y)));
-const REAL_PAGES=["geral","alertas","diario","comparar","metas","mensal","meta","google","gpt","campanhas","criativos","influencers","seo","reservas","receita","funil","produtos","concorrencia","analise","historico","importar"];
+const REAL_PAGES=["fontes","geral","alertas","diario","comparar","metas","mensal","meta","google","gpt","campanhas","criativos","influencers","seo","reservas","receita","funil","produtos","concorrencia","analise","historico","importar"];
 const MES_NOME=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 function monthRange(m){const[a,y]=m.split("/"),i=MES_ABR.indexOf(a),Y=2000+(+y),last=new Date(Y,i+1,0).getDate(),mm=String(i+1).padStart(2,"0");
   return{name:`${MES_NOME[i]}/${Y}`,range:`01/${mm} a ${last}/${mm}/${Y}`};}
@@ -671,6 +671,34 @@ function cmpRangeMetrics(){
     {lbl:"Reservas enviadas no site",f:CMP_N,up:true,v:resS},
     {lbl:"Mídia por reserva do site",f:CMP_BRL2,up:false,v:r=>{const x=resS(r);return x?T(r)/x:null;}}]}];
 }
+/* ---------- status das fontes de dados ---------- */
+function sourcesStatus(){
+  const last=o=>{const k=sortM(Object.keys(o||{}));return k[k.length-1]||null;};
+  const dk=Object.keys(REAL.daily?.days||{}).sort(),dEnd=dk[dk.length-1],fd=d=>d?d.split("-").reverse().join("/"):"—";
+  const dLast=i=>{for(let j=dk.length-1;j>=0;j--)if(REAL.daily.days[dk[j]][i]>0)return dk[j];return null;};
+  const metaBill=sortM(Object.keys(REAL.meta||{}).filter(k=>REAL.meta[k].bill!=null)).pop()||null;
+  const L=COMP_LIVE,hh=d=>d.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
+  const curM=allRealMonths().filter(m=>!PARTIAL[m]).pop();
+  return[
+   {grp:"auto",t:"Automático",d:"Atualiza sozinho quando alguém abre o painel. Ninguém precisa fazer nada.",items:[
+    {n:"Concorrentes (planilha Google Sheets)",what:"preços da frota Yalla, ofertas e comparativo",st:L.st==="ok"?`sincronizado às ${hh(L.at)} · consulta de ${COMP.date||"—"}`:L.st==="erro"?"falhou: "+L.msg:`consulta de ${COMP.date||"—"} · lê a planilha ao abrir a aba`,ok:L.st!=="erro",page:"concorrencia"}]},
+   {grp:"cmd",t:"Por comando (Supermetrics)",d:"Conectado. Os números ficam gravados no painel até o Claude puxar de novo — peça “atualiza os dados” (sem arquivo).",items:[
+    {n:"Meta Ads",what:"gasto diário e por campanha, leads, cliques, pixel",st:`dados até ${fd(dEnd)} · atualizado em ${REAL.daily?.updated||"—"}`,ok:true,page:"meta"},
+    {n:"Google Ads",what:"gasto diário, cliques, conversões",st:`dados até ${fd(dEnd)} · último gasto em ${fd(dLast(1))}`,ok:true,page:"google"},
+    {n:"ChatGPT Ads",what:"gasto diário, cliques, impressões",st:`dados até ${fd(dEnd)} · atualizado em ${REAL.daily?.updated||"—"}`,ok:true,page:"gpt"},
+    {n:"Google Analytics 4 (site)",what:"sessões, canais, origens, páginas, funil de reserva",st:`dados até ${fd(dEnd)} · atualizado em ${REAL.ga?.updated||"—"}`,ok:true,page:"seo"}]},
+   {grp:"manual",t:"Manual (envio de arquivo ou digitação)",d:"Precisa que alguém mande o arquivo ao Claude ou suba em Importar dados.",items:[
+    {n:"Reservas e contratos (Yalla Digital)",what:"planilha de reservas do mês (.xlsx)",st:`último mês recebido: ${last(REAL.res)||"—"}`,ok:last(REAL.res)===curM,page:"reservas"},
+    {n:"Chat Yalla",what:"PDF do relatório do chat (página toda carregada)",st:`último mês recebido: ${last(REAL.chat?.months)||"—"}`,ok:last(REAL.chat?.months)===curM,page:"funil"},
+    {n:"Influenciadores",what:"prints ou planilha de cliques e reservas por link",st:`último mês recebido: ${last(REAL.influencers?.months)||"—"}`,ok:last(REAL.influencers?.months)===curM,page:"influencers"},
+    {n:"Fatura da Meta",what:"relatório de cobrança (.csv)",st:`último mês recebido: ${metaBill||"—"}`,ok:metaBill===curM,page:"mensal"},
+    {n:"Metas, verba e premissas de receita",what:"digitado nas abas Metas e verba / Receita e ROI",st:EDIT.goals?.[curM]&&Object.keys(EDIT.goals[curM]).length?`metas de ${curM} preenchidas (neste navegador)`:`metas de ${curM} não preenchidas`,ok:!!(EDIT.goals?.[curM]&&Object.keys(EDIT.goals[curM]).length),page:"metas"}]},
+   {grp:"off",t:"Não conectado",d:"Disponível no Supermetrics — basta conectar a conta.",items:[
+    {n:"Google Search Console",what:"palavras-chave, posição no Google, cliques orgânicos",st:"não conectado",ok:false,page:"seo"},
+    {n:"Instagram orgânico",what:"seguidores, alcance, melhores posts",st:"não conectado",ok:false,page:null}]}];
+}
+const SRC_STYLE={auto:["var(--green)","var(--green-soft)","AUTOMÁTICO"],cmd:["var(--blue,#6EA8FE)","rgba(110,168,254,.14)","POR COMANDO"],manual:["var(--amber,#FFC24B)","rgba(255,194,75,.14)","MANUAL"],off:["var(--muted)","var(--navy4)","DESLIGADO"]};
+function srcTag(g){const[c,b,l]=SRC_STYLE[g];return`<span style="font:700 10px Montserrat;letter-spacing:.08em;color:${c};background:${b};padding:3px 7px;border-radius:5px;white-space:nowrap">${l}</span>`;}
 const MEDIA_COLORS=()=>({"Meta Ads":Y,"Google Ads":B,"ChatGPT Ads":"#10A37F","Influenciadores":"#F687B3"});
 /* gasto por mídia mês a mês; null = sem dado lançado */
 function mediaMonthly(all){
@@ -956,6 +984,7 @@ const PAGES=[
   {id:"analise",name:"Análise e próximos passos",ic:"notes"},
   {grp:"Dados"},
   {id:"historico",name:"Histórico",ic:"hist"},
+  {id:"fontes",name:"Fontes de dados",ic:"db"},
   {id:"importar",name:"Importar dados",ic:"up"}
 ];
 
@@ -2100,6 +2129,17 @@ historico(){
       <td><a class="btn" style="height:28px;font-size:11px" href="#geral" onclick="state.mTo='${m}'">Abrir</a></td></tr>`}).join("")}
   </tbody></table></div>`);
 },
+fontes(){
+  const G=sourcesStatus();
+  return`${sec("De onde vêm os dados","o que atualiza sozinho, o que precisa de comando e o que depende de arquivo")}
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-bottom:14px">
+    ${G.map(g=>`<div class="card"><div style="margin-bottom:8px">${srcTag(g.grp)}</div><div style="font:700 26px 'Barlow Condensed'">${g.items.length} ${g.items.length===1?"fonte":"fontes"}</div><div style="font-size:12px;color:var(--muted);margin-top:4px">${g.d}</div></div>`).join("")}
+  </div>
+  ${G.map(g=>T(g.t,`<div class="tbl-wrap"><table><thead><tr><th>Fonte</th><th>O que traz</th><th>Situação</th><th></th></tr></thead><tbody>
+    ${g.items.map(it=>`<tr><td><b>${it.n}</b></td><td style="color:var(--muted)">${it.what}</td><td><span style="color:${g.grp==="off"?"var(--muted)":it.ok?"var(--green)":"var(--amber,#FFC24B)"}">${g.grp==="off"?"○":it.ok?"●":"●"} ${it.st}</span></td><td style="text-align:right">${it.page?`<a href="#${it.page}" style="color:var(--y);font-size:12px">ver aba</a>`:""}</td></tr>`).join("")}
+  </tbody></table></div>`,srcTag(g.grp))).join("")}
+  <div class="alerts" style="grid-template-columns:1fr"><div class="alert info">${svg("info")}<div><b>Como atualizar</b><span>Por comando: peça ao Claude “atualiza os dados” — ele puxa Meta, Google, ChatGPT e Analytics e publica. Manual: mande o arquivo na conversa ou use <a href="#importar" style="color:var(--y)">Importar dados</a>. Amarelo = falta o arquivo do último mês completo.</span></div></div></div>`;
+},
 importar(){
   const src=[
     ["Meta Ads — campanhas e fatura","Relatório de campanhas do mês + relatório de cobrança (CSV, pode selecionar vários)","meta","importMeta"],
@@ -2529,10 +2569,13 @@ function render(){
     document.getElementById("pageTitle").innerHTML=`${pg.name}<small>${state.page==="concorrencia"?"Consulta "+(COMP.date||"—"):r.label+" · "+r.period}</small>`;
   }
   const db=document.getElementById("demoBar");
-  const BANNER={concorrencia:`Dados reais · planilha de concorrência online (Google Sheets) · consulta de ${COMP.date||"—"} (não muda com o mês)`,criativos:"Aguardando dados · veja abaixo o que enviar",seo:"Dados reais · Google Analytics 4 (yallacar.com.br) via Supermetrics",comparar:"Compare quaisquer dois meses, dois intervalos de datas ou todos os meses lado a lado",diario:"Dados reais · gasto diário da Meta, Google e ChatGPT via Supermetrics · reservas do site pelo GA4",
+  const BANNER={concorrencia:`Dados reais · planilha de concorrência online (Google Sheets) · consulta de ${COMP.date||"—"} (não muda com o mês)`,criativos:"Aguardando dados · veja abaixo o que enviar",seo:"Dados reais · Google Analytics 4 (yallacar.com.br) via Supermetrics",fontes:"Status de cada fonte de dados do painel",comparar:"Compare quaisquer dois meses, dois intervalos de datas ou todos os meses lado a lado",diario:"Dados reais · gasto diário da Meta, Google e ChatGPT via Supermetrics · reservas do site pelo GA4",
     metas:"Realizado = dados reais · metas e orçamento editáveis (salvos neste navegador)",receita:"Contratos reais · premissas de receita editáveis",analise:"Resumo automático com dados reais · notas editáveis por mês",importar:"Importe os arquivos do mês ou lance canais sem exportação"};
   db.textContent=BANNER[state.page]||"Dados reais · Meta Ads, Google Ads, ChatGPT Ads, Yalla Digital, Chat Yalla e influenciadores";
   if(REAL_PAGES.includes(state.page)&&state.mTo&&PARTIAL[state.mTo])db.textContent=`Mês parcial (${PARTIAL[state.mTo]}) · mídia e site atualizados via Supermetrics · reservas, contratos, Chat Yalla e influenciadores de ${state.mTo} ainda não enviados — Aguardando arquivos`;
+  {const PG_SRC={geral:["cmd","manual"],alertas:["cmd","manual"],metas:["manual"],mensal:["cmd","manual"],diario:["cmd"],comparar:["cmd","manual"],meta:["cmd"],google:["cmd"],gpt:["cmd"],campanhas:["cmd"],influencers:["manual"],seo:["cmd"],reservas:["manual"],receita:["manual"],funil:["manual"],produtos:["manual"],concorrencia:["auto"],analise:["cmd","manual"],historico:["cmd","manual"]}[state.page];
+   let sb=document.getElementById("srcBadges");if(!sb){sb=document.createElement("span");sb.id="srcBadges";sb.style.cssText="display:inline-flex;gap:6px;margin-left:10px;vertical-align:middle";db.after(sb);}
+   sb.innerHTML=PG_SRC?PG_SRC.map(srcTag).join("")+`<a href="#fontes" style="color:var(--y);font-size:11px;margin-left:4px">fontes</a>`:"";}
   const waiting=/Aguardando/.test(db.textContent);db.style.background=waiting?"":"var(--green-soft)";db.style.color=waiting?"":"var(--green)";
   charts.forEach(c=>c.destroy());charts=[];if(chartIO)chartIO.disconnect();
   const vkey=[state.page,state.mTo,state.report,state.metaMonth,state.product,COMPARE].join("|");
