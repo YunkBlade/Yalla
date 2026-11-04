@@ -320,6 +320,7 @@ select.edf,input.edf[type=date]{color:var(--txt,#EEF1F7);background:var(--navy3)
       <button class="btn icon" onclick="openWpp()" title="Resumo para WhatsApp"><svg viewBox="0 0 24 24"><path d="M3 21l1.7-5A8.5 8.5 0 1 1 8 19.3z"/><path d="M9 10c0 3 2 5 5 5l1.2-1.4-2-1-1 .8c-1-.4-1.7-1.1-2.1-2.1l.8-1-1-2z"/></svg></button>
       <button class="btn icon" onclick="presentStart()" title="Modo apresentação"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M12 16v4M8 20h8"/></svg></button>
       <button class="btn icon" onclick="window.print()" title="Exportar PDF"><svg viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7"/></svg></button>
+      <div id="userBox" style="display:flex;align-items:center;gap:8px;margin-left:4px"></div>
     </div>
     <div class="demo" id="demoBar"></div>
     <div id="view"></div>
@@ -702,6 +703,110 @@ function sourcesStatus(){
 const SRC_STYLE={auto:["var(--green)","var(--green-soft)","AUTOMÁTICO"],cmd:["var(--blue,#6EA8FE)","rgba(110,168,254,.14)","POR COMANDO"],manual:["var(--amber,#FFC24B)","rgba(255,194,75,.14)","MANUAL"],off:["var(--muted)","var(--navy4)","DESLIGADO"]};
 function srcTag(g){const[c,b,l]=SRC_STYLE[g];return`<span style="font:700 10px Montserrat;letter-spacing:.08em;color:${c};background:${b};padding:3px 7px;border-radius:5px;white-space:nowrap">${l}</span>`;}
 const prioCls=t=>{t=normTxt(t);return /alta|risco/.test(t)?"bad":/checar|validacao/.test(t)?"mid":"neu";};
+
+/* =====================================================================
+   ACESSO POR USUÁRIO (Supabase · projeto ponto-yalla · tabelas panel_*)
+   ===================================================================== */
+const AUTH={url:"https://sdzaddteiczjysnnrmih.supabase.co",key:"sb_publishable_bvTT-P1mNhHYNHwCFTW_Zg_AgvSNGpF"};
+let SESS=null;
+const AUTH_ON=/^https?:/.test(location.protocol)&&!/^(localhost|127\.)/.test(location.hostname);
+const ERR_TXT={login_invalido:"E-mail ou senha incorretos.",bloqueado:"Muitas tentativas. Tente de novo em 15 minutos.",sessao_invalida:"Sua sessão expirou. Entre novamente.",convite_invalido:"Este link de acesso expirou ou já foi usado. Peça um novo ao administrador.",senha_curta:"A senha precisa ter pelo menos 8 caracteres.",sem_permissao:"Apenas administradores podem fazer isso.",email_invalido:"E-mail inválido.",nao_pode_remover_proprio_admin:"Você não pode tirar o seu próprio acesso de administrador.",usuario_nao_encontrado:"Usuário não encontrado."};
+async function rpc(fn,args){
+  const r=await fetch(`${AUTH.url}/rest/v1/rpc/${fn}`,{method:"POST",headers:{"apikey":AUTH.key,"Authorization":"Bearer "+AUTH.key,"Content-Type":"application/json"},body:JSON.stringify(args||{})});
+  const t=await r.text();let j=null;try{j=t?JSON.parse(t):null}catch(e){}
+  if(!r.ok){const code=(j&&j.message)||("erro "+r.status);const e=new Error(ERR_TXT[code]||code);e.code=code;throw e;}
+  return j;
+}
+function canSee(id){
+  if(!AUTH_ON)return true;
+  if(!SESS)return false;
+  const pg=PAGES.find(p=>p.id===id);if(!pg)return false;
+  if(SESS.user.role==="admin")return true;
+  if(pg.admin)return false;
+  return (SESS.user.tabs||[]).includes(id);
+}
+function gateHTML(inner){return`<div id="authGate" style="position:fixed;inset:0;z-index:9999;background:var(--navy,#0D1220);display:flex;align-items:center;justify-content:center;padding:20px">
+  <div class="card" style="width:100%;max-width:380px;padding:28px">${document.querySelector(".brand-logo.logo-light")?.outerHTML.replace('class="brand-logo logo-light"','style="height:42px;margin-bottom:6px"')||""}
+  <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:20px">Relatórios de marketing</div>${inner}</div></div>`;}
+function showGate(inner){document.getElementById("authGate")?.remove();document.body.insertAdjacentHTML("beforeend",gateHTML(inner));}
+const gIn=(id,type,ph,ac)=>`<input id="${id}" type="${type}" placeholder="${ph}" autocomplete="${ac}" style="width:100%;height:42px;margin-bottom:10px;background:var(--navy3);border:1px solid var(--line2);border-radius:8px;padding:0 12px;color:var(--txt);font:500 14px Montserrat">`;
+function showLogin(msg){
+  showGate(`<b style="font:700 18px Montserrat;display:block;margin-bottom:14px">Entrar</b>
+    <form onsubmit="event.preventDefault();doLogin()">${gIn("gEmail","email","E-mail","username")}${gIn("gPass","password","Senha","current-password")}
+    <div id="gMsg" style="min-height:18px;font-size:12px;color:var(--red);margin-bottom:8px">${msg||""}</div>
+    <button class="btn" type="submit" style="width:100%;height:42px;background:var(--y);color:#111;border-color:var(--y);font-weight:700">Entrar</button></form>
+    <p style="font-size:11.5px;color:var(--dim);margin-top:14px">Primeiro acesso ou esqueceu a senha? Peça ao administrador um link de acesso.</p>`);
+  setTimeout(()=>document.getElementById("gEmail")?.focus(),50);
+}
+async function doLogin(){
+  const m=document.getElementById("gMsg");m.style.color="var(--muted)";m.textContent="Entrando…";
+  try{const r=await rpc("panel_login",{p_email:document.getElementById("gEmail").value,p_password:document.getElementById("gPass").value});setSession(r);startApp();}
+  catch(e){m.style.color="var(--red)";m.textContent=e.message;}
+}
+async function showInvite(code){
+  showGate('<div style="color:var(--muted)">Verificando o link…</div>');
+  try{const i=await rpc("panel_invite_info",{p_code:code});
+    showGate(`<b style="font:700 18px Montserrat;display:block;margin-bottom:6px">Olá${i.name?", "+i.name.split(" ")[0]:""}!</b><p style="font-size:13px;color:var(--muted);margin-bottom:16px">Crie sua senha para acessar o painel com <b style="color:var(--txt)">${i.email}</b>.</p>
+      <form onsubmit="event.preventDefault();doInvite('${code}')">${gIn("gP1","password","Nova senha (mín. 8 caracteres)","new-password")}${gIn("gP2","password","Repita a senha","new-password")}
+      <div id="gMsg" style="min-height:18px;font-size:12px;color:var(--red);margin-bottom:8px"></div>
+      <button class="btn" type="submit" style="width:100%;height:42px;background:var(--y);color:#111;border-color:var(--y);font-weight:700">Criar senha e entrar</button></form>`);
+  }catch(e){showLogin(e.message);}
+}
+async function doInvite(code){
+  const m=document.getElementById("gMsg"),a=document.getElementById("gP1").value,b=document.getElementById("gP2").value;
+  if(a!==b){m.textContent="As senhas não conferem.";return;}
+  try{const r=await rpc("panel_accept_invite",{p_code:code,p_password:a});setSession(r);history.replaceState(null,"","#geral");startApp();}
+  catch(e){m.textContent=e.message;}
+}
+function setSession(r){SESS={token:r.token,user:r.user};try{localStorage.setItem("yalla-sess",r.token)}catch(e){}}
+async function doLogout(){try{await rpc("panel_logout",{p_token:SESS?.token})}catch(e){}SESS=null;try{localStorage.removeItem("yalla-sess")}catch(e){}document.getElementById("userBox").innerHTML="";showLogin();}
+function renderUserBox(){
+  const b=document.getElementById("userBox");if(!b)return;
+  if(!AUTH_ON||!SESS){b.innerHTML="";return;}
+  const u=SESS.user,ini=(u.name||u.email).split(/[\s@.]/).filter(Boolean).slice(0,2).map(x=>x[0].toUpperCase()).join("");
+  b.innerHTML=`<span title="${u.email}" style="width:34px;height:34px;border-radius:50%;background:var(--navy3);border:1px solid var(--line2);display:inline-flex;align-items:center;justify-content:center;font:700 12px Montserrat;color:var(--y)">${ini}</span>
+    <span style="font-size:12px;color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.name||u.email}${u.role==="admin"?' · <b style="color:var(--y)">admin</b>':""}</span>
+    <button class="btn" style="height:30px;font-size:11.5px" onclick="doLogout()">Sair</button>`;
+}
+let APP_STARTED=false;
+function startApp(){
+  document.getElementById("authGate")?.remove();
+  PRES=PAGES.filter(p=>p.id&&!["historico","importar","usuarios"].includes(p.id)&&canSee(p.id)).map(p=>p.id);
+  renderUserBox();render();
+  if(!APP_STARTED){APP_STARTED=true;setTimeout(()=>syncCompLive(false),400);}
+}
+async function authBoot(){
+  if(!AUTH_ON){startApp();return;}
+  const m=location.hash.match(/^#convite=([a-f0-9]+)/i);if(m){showInvite(m[1]);return;}
+  let t=null;try{t=localStorage.getItem("yalla-sess")}catch(e){}
+  if(!t){showLogin();return;}
+  showGate('<div style="color:var(--muted)">Carregando…</div>');
+  try{const u=await rpc("panel_me",{p_token:t});SESS={token:t,user:u};startApp();}
+  catch(e){try{localStorage.removeItem("yalla-sess")}catch(x){}showLogin(e.code==="sessao_invalida"?"":e.message);}
+}
+/* ---------- admin: usuários ---------- */
+const UADM={list:null,draft:{},links:{},msg:"",loading:false};
+async function loadUsers(){UADM.loading=true;try{UADM.list=await rpc("panel_admin_list",{p_token:SESS.token});UADM.msg="";}catch(e){UADM.msg=e.message;UADM.list=UADM.list||[];}UADM.loading=false;if(state.page==="usuarios")render();}
+function uDraft(email){const u=UADM.list.find(x=>x.email===email);return UADM.draft[email]||(UADM.draft[email]={name:u.name||"",role:u.role,tabs:[...(u.tabs||[])],active:u.active});}
+function uToggle(email,tab,on){const d=uDraft(email);d.tabs=on?[...new Set([...d.tabs,tab])]:d.tabs.filter(t=>t!==tab);d.dirty=true;render();}
+function uSetAll(email,ids){const d=uDraft(email);d.tabs=ids;d.dirty=true;render();}
+function uSet(email,k,v){const d=uDraft(email);d[k]=v;d.dirty=true;render();}
+async function uSave(email){const d=uDraft(email);try{await rpc("panel_admin_save",{p_token:SESS.token,p_email:email,p_name:d.name,p_role:d.role,p_tabs:d.tabs,p_active:d.active});delete UADM.draft[email];UADM.msg="✓ Acessos de "+email+" salvos.";await loadUsers();}catch(e){UADM.msg=e.message;render();}}
+async function uAdd(){
+  const n=document.getElementById("uNewName").value,e=document.getElementById("uNewEmail").value,r=document.getElementById("uNewRole").value;
+  const preset=document.getElementById("uNewPreset").value,tabs=preset==="all"?PAGES.filter(p=>p.id&&!p.admin).map(p=>p.id):preset==="none"?[]:UPRESETS[preset].tabs;
+  try{await rpc("panel_admin_save",{p_token:SESS.token,p_email:e,p_name:n,p_role:r,p_tabs:tabs,p_active:true});const inv=await rpc("panel_admin_invite",{p_token:SESS.token,p_email:e});UADM.links[inv.email]=inv;UADM.msg="✓ "+(n||e)+" adicionado. Envie o link de acesso abaixo.";await loadUsers();}
+  catch(x){UADM.msg=x.message;render();}
+}
+async function uInvite(email){try{const inv=await rpc("panel_admin_invite",{p_token:SESS.token,p_email:email});UADM.links[email]=inv;await loadUsers();}catch(e){UADM.msg=e.message;render();}}
+async function uDelete(email){if(!confirm("Remover o acesso de "+email+"?"))return;try{await rpc("panel_admin_delete",{p_token:SESS.token,p_email:email});UADM.msg="Acesso de "+email+" removido.";await loadUsers();}catch(e){UADM.msg=e.message;render();}}
+const inviteURL=code=>location.origin+location.pathname+"#convite="+code;
+const UPRESETS={
+  diretoria:{l:"Diretoria (resultados)",tabs:["geral","alertas","mensal","comparar","reservas","receita","funil","analise"]},
+  midia:{l:"Mídia paga",tabs:["geral","alertas","mensal","diario","comparar","meta","google","gpt","campanhas","criativos","seo"]},
+  comercial:{l:"Comercial",tabs:["geral","reservas","funil","produtos","concorrencia"]},
+  influ:{l:"Influenciadores",tabs:["influencers"]}
+};
 const MEDIA_COLORS=()=>({"Meta Ads":Y,"Google Ads":B,"ChatGPT Ads":"#10A37F","Influenciadores":"#F687B3"});
 /* gasto por mídia mês a mês; null = sem dado lançado */
 function mediaMonthly(all){
@@ -1176,7 +1281,8 @@ const PAGES=[
   {grp:"Dados"},
   {id:"historico",name:"Histórico",ic:"hist"},
   {id:"fontes",name:"Fontes de dados",ic:"db"},
-  {id:"importar",name:"Importar dados",ic:"up"}
+  {id:"importar",name:"Importar dados",ic:"up"},
+  {id:"usuarios",name:"Usuários e acessos",ic:"star",admin:true}
 ];
 
 /* =====================================================================
@@ -2340,6 +2446,52 @@ fontes(){
   </tbody></table></div>`,srcTag(g.grp))).join("")}
   <div class="alerts" style="grid-template-columns:1fr"><div class="alert info">${svg("info")}<div><b>Como atualizar</b><span>Por comando: peça ao Claude “atualiza os dados” — ele puxa Meta, Google, ChatGPT e Analytics e publica. Manual: mande o arquivo na conversa ou use <a href="#importar" style="color:var(--y)">Importar dados</a>. Amarelo = falta o arquivo do último mês completo.</span></div></div></div>`;
 },
+usuarios(){
+  if(!AUTH_ON)return T("Usuários e acessos",'<div class="empty">Abra pelo link do painel (yalla-relatorios.vercel.app) para gerenciar os acessos.</div>');
+  if(!UADM.list){if(!UADM.loading)loadUsers();return'<div class="empty">Carregando usuários…</div>';}
+  const groups=[];let g=null;PAGES.forEach(p=>{if(p.grp){g={n:p.grp,items:[]};groups.push(g);}else if(p.id&&!p.admin)g.items.push(p);});
+  const allIds=PAGES.filter(p=>p.id&&!p.admin).map(p=>p.id);
+  const esc=t=>String(t??"").replace(/"/g,"&quot;").replace(/</g,"&lt;");
+  const card=u=>{const d=uDraft(u.email),isAdm=d.role==="admin",lk=UADM.links[u.email],e=u.email.replace(/'/g,"\\'");
+    const st=!u.active?'<span class="chip bad">desativado</span>':u.has_password?`<span class="chip ok">ativo</span><span style="font-size:11px;color:var(--dim)"> último acesso: ${u.last_login?new Date(u.last_login).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"—"}</span>`:u.invite_pending?'<span class="chip mid">aguardando criar senha</span>':'<span class="chip neu">sem link de acesso</span>';
+    return`<div class="card" style="margin-bottom:12px${d.dirty?";border-color:var(--y)":""}">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+        <input class="edf" style="height:34px;color:var(--txt);min-width:180px" value="${esc(d.name)}" placeholder="Nome" onchange="uSet('${e}','name',this.value)">
+        <b style="font-size:13px">${u.email}</b> ${st}
+        <span style="margin-left:auto;display:flex;gap:8px;align-items:center">
+          <select class="edf" style="height:32px" onchange="uSet('${e}','role',this.value)"><option value="viewer" ${!isAdm?"selected":""}>Visualizador</option><option value="admin" ${isAdm?"selected":""}>Administrador</option></select>
+          <label style="font-size:12px;color:var(--muted);display:flex;gap:5px;align-items:center"><input type="checkbox" ${d.active?"checked":""} onchange="uSet('${e}','active',this.checked)"> ativo</label></span></div>
+      ${isAdm?'<div style="font-size:12.5px;color:var(--muted);margin-bottom:10px">Administrador vê todas as abas e gerencia os usuários.</div>':`
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"><span style="font-size:11px;color:var(--dim);align-self:center">Atalhos:</span>
+        <button class="btn" style="height:26px;font-size:11px" onclick="uSetAll('${e}',${JSON.stringify(allIds).replace(/"/g,"&quot;")})">Todas</button>
+        ${Object.entries(UPRESETS).map(([k,p])=>`<button class="btn" style="height:26px;font-size:11px" onclick="uSetAll('${e}',${JSON.stringify(p.tabs).replace(/"/g,"&quot;")})">${p.l}</button>`).join("")}
+        <button class="btn" style="height:26px;font-size:11px" onclick="uSetAll('${e}',[])">Nenhuma</button></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px 18px">${groups.filter(g=>g.items.length).map(g=>`<div><div style="font:700 10.5px Montserrat;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:6px">${g.n}</div>${g.items.map(p=>`<label style="display:flex;gap:7px;align-items:center;font-size:12.5px;margin:4px 0;cursor:pointer"><input type="checkbox" ${d.tabs.includes(p.id)?"checked":""} onchange="uToggle('${e}','${p.id}',this.checked)"> ${p.name}</label>`).join("")}</div>`).join("")}</div>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:8px">${d.tabs.length} de ${allIds.length} abas liberadas</div>`}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center">
+        <button class="btn" style="height:32px;font-size:12px;${d.dirty?"background:var(--y);color:#111;border-color:var(--y)":""}" onclick="uSave('${e}')">Salvar acessos</button>
+        <button class="btn" style="height:32px;font-size:12px" onclick="uInvite('${e}')">${u.has_password?"Gerar link para nova senha":"Gerar link de acesso"}</button>
+        ${u.email!==SESS.user.email?`<button class="btn" style="height:32px;font-size:12px;color:var(--red)" onclick="uDelete('${e}')">Remover</button>`:""}</div>
+      ${lk?(()=>{const url=inviteURL(lk.code),msg=`Olá${lk.name?" "+lk.name.split(" ")[0]:""}! Seu acesso ao painel de relatórios da Yalla está liberado. Crie sua senha neste link (válido por 7 dias): ${url}`;
+        return`<div style="margin-top:12px;padding:12px;border:1px dashed var(--y);border-radius:10px"><div style="font-size:11.5px;color:var(--muted);margin-bottom:6px">Link de acesso (válido por 7 dias, uso único):</div>
+        <input class="edf" readonly style="width:100%;height:34px;color:var(--txt)" value="${url}" onclick="this.select()">
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn" style="height:30px;font-size:11.5px" onclick="navigator.clipboard.writeText('${url}');this.textContent='Copiado ✓'">Copiar link</button>
+        <a class="btn" style="height:30px;font-size:11.5px" target="_blank" href="https://wa.me/?text=${encodeURIComponent(msg)}">Enviar por WhatsApp</a>
+        <a class="btn" style="height:30px;font-size:11.5px" href="mailto:${u.email}?subject=${encodeURIComponent("Acesso ao painel de relatórios Yalla")}&body=${encodeURIComponent(msg)}">Enviar por e-mail</a></div></div>`;})():""}
+    </div>`;};
+  return`${sec("Usuários e acessos","quem pode entrar no painel e quais abas cada pessoa vê")}
+  ${UADM.msg?`<div class="alerts" style="grid-template-columns:1fr"><div class="alert ${/^✓/.test(UADM.msg)?"info":"warn"}">${svg("info")}<div><span style="color:var(--txt)">${UADM.msg}</span></div></div></div>`:""}
+  <div class="card" style="margin-bottom:16px"><h3>Adicionar pessoa</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <input id="uNewName" class="edf" style="height:36px;color:var(--txt);min-width:180px" placeholder="Nome">
+      <input id="uNewEmail" class="edf" type="email" style="height:36px;color:var(--txt);min-width:240px" placeholder="E-mail">
+      <select id="uNewRole" class="edf" style="height:36px"><option value="viewer">Visualizador</option><option value="admin">Administrador</option></select>
+      <select id="uNewPreset" class="edf" style="height:36px"><option value="none">Abas: escolher depois</option>${Object.entries(UPRESETS).map(([k,p])=>`<option value="${k}">Abas: ${p.l}</option>`).join("")}<option value="all">Abas: todas</option></select>
+      <button class="btn" style="height:36px;background:var(--y);color:#111;border-color:var(--y);font-weight:700" onclick="uAdd()">Adicionar e gerar link</button></div>
+    <p style="font-size:11.5px;color:var(--dim);margin-top:10px">A pessoa recebe um link para criar a própria senha (válido por 7 dias). Esqueceu a senha? Clique em “Gerar link para nova senha” no cartão dela.</p></div>
+  ${UADM.list.map(card).join("")}
+  <p style="font-size:11px;color:var(--dim)">O login bloqueia quem não tem acesso e esconde as abas não liberadas. Os números ficam no arquivo do painel, então quem já entrou e tem conhecimento técnico ainda conseguiria ver dados de outras abas pelo código da página.</p>`;
+},
 importar(){
   const src=[
     ["Meta Ads — campanhas e fatura","Relatório de campanhas do mês + relatório de cobrança (CSV, pode selecionar vários)","meta","importMeta"],
@@ -2652,7 +2804,7 @@ function copyWpp(){const t=document.getElementById("wppText");t.select();navigat
 /* =====================================================================
    MODO APRESENTAÇÃO
    ===================================================================== */
-const PRES=PAGES.filter(p=>p.id&&!["historico","importar"].includes(p.id)).map(p=>p.id);
+let PRES=PAGES.filter(p=>p.id&&!["historico","importar","usuarios"].includes(p.id)).map(p=>p.id);
 function presentStart(){document.body.classList.add("present");if(!PRES.includes(state.page))location.hash="#geral";updPres();}
 function presentStop(){document.body.classList.remove("present");}
 function presentGo(n){let i=PRES.indexOf(state.page)+n;i=Math.max(0,Math.min(PRES.length-1,i));location.hash="#"+PRES[i];}
@@ -2749,12 +2901,14 @@ const state={page:"geral",report:"2026-S44",product:"all",alerts:[]};
 {const ms=allRealMonths().filter(m=>!PARTIAL[m]);if(ms.length)state.mTo=ms[ms.length-1];}
 function renderNav(){
   const n=state.alerts.filter(a=>a.lv!=="info"&&!a.ex).length;
-  document.getElementById("nav").innerHTML=PAGES.map(p=>p.grp?`<div class="nav-label">${p.grp}</div>`:
+  const vis=[];let gh=null;PAGES.forEach(p=>{if(p.grp){gh=p;return;}if(!canSee(p.id))return;if(gh){vis.push(gh);gh=null;}vis.push(p);});
+  document.getElementById("nav").innerHTML=vis.map(p=>p.grp?`<div class="nav-label">${p.grp}</div>`:
     `<a href="#${p.id}" class="${state.page===p.id?'on':''}">${svg(p.ic)}${p.name}${p.tag?`<span class="tag">${p.tag}</span>`:""}${p.alerts&&n?`<span class="cnt">${n}</span>`:""}</a>`).join("");
 }
 function render(){
   state.page=(location.hash||"#geral").slice(1);
   if(!P[state.page])state.page="geral";
+  if(!canSee(state.page)){const f=PAGES.find(p=>p.id&&canSee(p.id));if(!f){document.getElementById("view").innerHTML='<div class="empty" style="padding:60px">Nenhuma aba liberada para você ainda. Fale com o administrador do painel.</div>';renderNav();return;}state.page=f.id;history.replaceState(null,"","#"+f.id);}
   const pg=PAGES.find(p=>p.id===state.page),r=R();
   state.alerts=buildAlerts(r);
   const sel=document.getElementById("selReport"),lbl=document.getElementById("selLbl");
@@ -2769,7 +2923,7 @@ function render(){
     document.getElementById("pageTitle").innerHTML=`${pg.name}<small>${state.page==="concorrencia"?"Consulta "+(COMP.date||"—"):r.label+" · "+r.period}</small>`;
   }
   const db=document.getElementById("demoBar");
-  const BANNER={concorrencia:`Dados reais · planilha de concorrência online (Google Sheets) · consulta de ${COMP.date||"—"} (não muda com o mês)`,criativos:"Aguardando dados · veja abaixo o que enviar",seo:"Dados reais · Google Analytics 4 (yallacar.com.br) via Supermetrics",fontes:"Status de cada fonte de dados do painel",comparar:"Compare quaisquer dois meses, dois intervalos de datas ou todos os meses lado a lado",diario:"Dados reais · gasto diário da Meta, Google e ChatGPT via Supermetrics · reservas do site pelo GA4",
+  const BANNER={concorrencia:`Dados reais · planilha de concorrência online (Google Sheets) · consulta de ${COMP.date||"—"} (não muda com o mês)`,criativos:"Aguardando dados · veja abaixo o que enviar",seo:"Dados reais · Google Analytics 4 (yallacar.com.br) via Supermetrics",fontes:"Status de cada fonte de dados do painel",usuarios:"Somente administradores · gerencie quem entra no painel e o que cada pessoa vê",comparar:"Compare quaisquer dois meses, dois intervalos de datas ou todos os meses lado a lado",diario:"Dados reais · gasto diário da Meta, Google e ChatGPT via Supermetrics · reservas do site pelo GA4",
     metas:"Realizado = dados reais · metas e orçamento editáveis (salvos neste navegador)",receita:"Contratos reais · premissas de receita editáveis",analise:"Resumo automático com dados reais · notas editáveis por mês",importar:"Importe os arquivos do mês ou lance canais sem exportação"};
   db.textContent=BANNER[state.page]||"Dados reais · Meta Ads, Google Ads, ChatGPT Ads, Yalla Digital, Chat Yalla e influenciadores";
   if(REAL_PAGES.includes(state.page)&&state.mTo&&PARTIAL[state.mTo])db.textContent=`Mês parcial (${PARTIAL[state.mTo]}) · mídia e site atualizados via Supermetrics · reservas, contratos, Chat Yalla e influenciadores de ${state.mTo} ainda não enviados — Aguardando arquivos`;
@@ -2797,8 +2951,7 @@ setTheme(document.documentElement.dataset.theme||"navy");
 try{if(localStorage.getItem("yalla-explain")==="1"){document.body.classList.add("explain");}}catch(e){}
 window.addEventListener("hashchange",render);
 try{if(!COMP.comparativo.some(c=>c.concPreco!=null))COMP=compFillComparativo(COMP);}catch(e){}
-render();
-setTimeout(()=>syncCompLive(false),400);
+authBoot();
 </script>
 </body>
 </html>
