@@ -1137,13 +1137,18 @@ function compOffersAll(){
 }
 function compAssign(){
   const ms=compModels(),tok=t=>normTxt(t).split(/[^a-z0-9]+/).filter(Boolean),map={};ms.forEach(m=>map[m.modelo]=[]);
+  const key=m=>{const t=tok(m);return t[0]==="eletrico"||t[0]==="comfort"&&t[1]==="surpresa"?null:(t[0].length<=2&&t[1]?t[0]+t[1]:t[0]);};
+  const unmatched=[];
   for(const o of compOffersAll()){
-    let target=null;
-    if(o.yalla){const y=normTxt(o.yalla);target=(ms.find(m=>normTxt(m.modelo)===y)||ms.find(m=>y.startsWith(normTxt(m.modelo))))?.modelo||null;}
-    if(!target){const ot=new Set(tok(o.mod));const cands=ms.filter(m=>ot.has(modelKey(m.modelo).split(" ")[0]));
-      if(cands.length){const sc=m=>tok(m.modelo).slice(1).filter(t=>ot.has(t)).length-(/dream|rent/i.test(m.modelo)?5:0);
-        target=cands.sort((a,b)=>sc(b)-sc(a)||a.modelo.length-b.modelo.length)[0].modelo;}}
-    if(target)map[target].push(o);}
+    let targets=[];
+    if(o.yalla){const y=normTxt(o.yalla);const t=(ms.find(m=>normTxt(m.modelo)===y)||ms.find(m=>y.startsWith(normTxt(m.modelo))));if(t)targets=[t.modelo];}
+    if(!targets.length){const ar=tok(o.mod),ot=new Set(ar);ar.forEach((t,i)=>{if(ar[i+1])ot.add(t+ar[i+1]);});
+      const cands=ms.filter(m=>{const k=key(m.modelo);return k&&ot.has(k);});
+      if(cands.length){const sc=m=>tok(m.modelo).slice(1).filter(t=>ot.has(t)).length-(/dream/i.test(m.modelo)&&!ot.has("dream")?5:0)-(/plotado/i.test(m.modelo)?0.5:0);
+        const best=Math.max(...cands.map(sc));const anyExtra=cands.some(m=>sc(m)>=1);
+        targets=cands.filter(m=>anyExtra?sc(m)===best:sc(m)>=best-0.5&&sc(m)>-1).map(m=>m.modelo);}}
+    if(targets.length)targets.forEach(t=>map[t].push(o));else unmatched.push(o);}
+  map.__unmatched=unmatched;
   return map;
 }
 function compOffersFor(model){return compAssign()[model]||[];}
@@ -1174,7 +1179,14 @@ function compAllView(){
       <td class="num">${r.best?`${brl(r.best.v)}<div style="font-size:10.5px;color:var(--dim)">${r.best.loc} · ${r.best.d}</div>`:"—"}</td>
       <td class="num"><b style="color:${gcol(r.gap)}">${r.gap==null?"—":(r.gap>0?"+":"")+dec(r.gap,0)+"%"}</b></td>
       ${locs.map(l=>{const o=r.by[l];if(!o)return'<td class="num" style="color:var(--dim)">—</td>';const g=r.y?(r.y/o.v-1)*100:null;return`<td class="num" title="${(o.mod||"").replace(/"/g,"'")} · ${o.d} · ${o.sheet}">${brl(o.v)}<div style="font-size:10.5px;color:${gcol(g)}">${g==null?"":(g>0?"Yalla +":"Yalla ")+dec(g,0)+"%"}</div></td>`;}).join("")}</tr>`).join("")}
-  </tbody></table></div><p style="font-size:11px;color:var(--dim);margin-top:10px">Para cada locadora, o preço mais recente encontrado nas abas Ofertas, Radar e Auditoria (promoções de 1ª semana e anúncios expirados ficam de fora). Gap = quanto a Yalla está acima (+) ou abaixo (−) do concorrente. Vermelho: Yalla 15%+ mais cara · amarelo: 5 a 15% · verde: Yalla 5%+ mais barata. Passe o mouse no preço para ver a oferta; clique no carro para ver o histórico.</p>`)}`;
+  </tbody></table></div><p style="font-size:11px;color:var(--dim);margin-top:10px">Para cada locadora, o preço mais recente encontrado nas abas Ofertas, Radar e Auditoria (promoções de 1ª semana e anúncios expirados ficam de fora). Gap = quanto a Yalla está acima (+) ou abaixo (−) do concorrente. Vermelho: Yalla 15%+ mais cara · amarelo: 5 a 15% · verde: Yalla 5%+ mais barata. Passe o mouse no preço para ver a oferta; clique no carro para ver o histórico.</p>`)}
+  ${(()=>{const sem=ms.filter(m=>(fc==="all"||m.cat===fc)&&!(A[m.modelo]||[]).some(o=>!o.promo&&!o.exp)),um=[...new Map((A.__unmatched||[]).map(o=>[o.loc+"|"+o.mod,o])).values()];
+    return T("O que ficou fora da comparação",`<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin:0">
+      <div><div style="font-size:12px;color:var(--muted);margin-bottom:8px"><b style="color:var(--txt)">${sem.length} carros da Yalla sem preço de concorrente na planilha</b> — nenhuma locadora pesquisada anuncia esse modelo (ou só há promoção/anúncio expirado).</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">${sem.map(m=>`<span class="pill" style="background:var(--navy3);color:var(--muted);padding:4px 8px;border-radius:6px;font-size:11px">${m.modelo} <span style="color:var(--dim)">· ${m.cat} · ${m.p5?brl(pBR(m.p5)):"—"}</span></span>`).join("")||'<span class="sub">nenhum</span>'}</div></div>
+      <div><div style="font-size:12px;color:var(--muted);margin-bottom:8px"><b style="color:var(--txt)">${um.length} ofertas de concorrentes sem carro equivalente na Yalla</b></div>
+        ${um.length?`<table><tbody>${um.map(o=>`<tr><td>${o.loc}</td><td>${o.mod||"—"}</td><td class="num">${brl(o.v)}</td><td class="num" style="color:var(--dim)">${o.d}</td></tr>`).join("")}</tbody></table>`:'<span class="sub">nenhuma</span>'}</div></div>
+      <p style="font-size:11px;color:var(--dim);margin-top:10px">Para comparar esses carros, inclua ofertas desses modelos na aba Ofertas Concorrentes (ou Radar/Auditoria) da planilha — o painel puxa sozinho.</p>`);})()}`;
 }
 function compModelView(){
   const ms=compModels();if(!ms.length)return'<div class="empty">Não encontrei a aba Frota Yalla na planilha.</div>';
