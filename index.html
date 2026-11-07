@@ -82,6 +82,29 @@ body.side-min .nav a .cnt{position:absolute;top:2px;right:4px;font-size:9px;padd
 .side-tip{position:fixed;z-index:100;pointer-events:none;background:var(--navy4);color:var(--txt);border:1px solid var(--line2);font:600 12px Montserrat,sans-serif;padding:7px 11px;border-radius:8px;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.35);opacity:0;transform:translate(-4px,-50%);transition:opacity .12s,transform .12s}
 .side-tip.on{opacity:1;transform:translate(0,-50%)}
 .side-tip:before{content:"";position:absolute;left:-5px;top:50%;width:8px;height:8px;background:inherit;border-left:1px solid var(--line2);border-bottom:1px solid var(--line2);transform:translateY(-50%) rotate(45deg)}
+.dp-btn{white-space:nowrap;cursor:pointer;font:500 12px Montserrat;color:var(--txt)}.dp-btn:hover{border-color:var(--y)}.dp-btn svg{width:15px;height:15px;stroke:var(--y);fill:none;stroke-width:2}
+.dp-pop{position:fixed;z-index:90;display:flex;background:var(--navy2);border:1px solid var(--line2);border-radius:12px;box-shadow:0 18px 50px rgba(0,0,0,.5);max-height:calc(100vh - 100px);overflow:auto;font-size:13px}
+.dp-l{width:200px;flex:none;border-right:1px solid var(--line);padding:10px 0;overflow:auto}
+.dp-r{display:flex;align-items:center;gap:10px;padding:7px 16px;cursor:pointer;color:var(--txt)}.dp-r:hover{background:var(--navy3)}
+.dp-r input{width:17px;height:17px;accent-color:var(--y);margin:0}
+.dp-main{flex:1;padding:16px 18px;min-width:0}
+.dp-cals{display:flex;gap:22px;align-items:flex-start}.dp-m{flex:1;min-width:0}
+.dp-nav{background:none;border:0;color:var(--muted);font-size:24px;cursor:pointer;padding:2px 6px;line-height:1}.dp-nav:hover{color:var(--y)}
+.dp-mh{display:flex;justify-content:center;gap:8px;margin-bottom:8px}.dp-mh select{background:var(--navy3);border:1px solid var(--line2);color:var(--txt);border-radius:6px;padding:4px 6px;font:600 13px Montserrat;cursor:pointer;color-scheme:dark}
+.dp-w,.dp-g{display:grid;grid-template-columns:repeat(7,1fr);row-gap:4px;text-align:center}.dp-w span{font-size:11px;color:var(--dim);padding:4px 0}
+.dp-d{height:34px;border:0;background:none;color:var(--txt);font:500 13px Montserrat;cursor:pointer;border-radius:0}
+.dp-d:hover:not(.dis){outline:1px solid var(--y);border-radius:6px}
+.dp-d.in{background:rgba(242,183,5,.18)}.dp-d.s{border-radius:6px 0 0 6px}.dp-d.e{border-radius:0 6px 6px 0}.dp-d.s.e{border-radius:6px}
+.dp-d.edge{background:var(--y);color:var(--navy);font-weight:700;border-radius:6px}
+.dp-d.cmp{background:rgba(91,141,239,.22)}.dp-d.today{color:var(--y)}.dp-d.edge.today{color:var(--navy)}
+.dp-d.dis{color:var(--dim);opacity:.35;cursor:default}
+.dp-sel{display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.dp-sw{width:14px;height:14px;border-radius:4px;background:#5b8def;flex:none}
+.dp-cmp{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 0 4px}.dp-cmp.off{opacity:.45}
+.dp-box{border:1px solid var(--line2);border-radius:6px;padding:7px 10px;color:var(--txt);font-size:12px}
+.dp-ft{display:flex;align-items:center;gap:10px;margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}.dp-ft .sub{flex:1;font-size:11px}
+.btn.btn-y,.btn-y{background:var(--y)!important;color:var(--navy)!important;border-color:var(--y)!important;font-weight:700}.btn-y:disabled{opacity:.5}
+@media (max-width:860px){.dp-pop{flex-direction:column}.dp-l{width:auto;display:flex;flex-wrap:wrap;border-right:0;border-bottom:1px solid var(--line)}.dp-l .dp-r{padding:6px 10px}.dp-cals{flex-direction:column}}
 /* main */
 .main{padding:0 32px 64px;min-width:0}
 .top{position:sticky;top:0;z-index:5;background:var(--topbg);backdrop-filter:blur(8px);display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:20px 0 16px;border-bottom:1px solid var(--line);margin-bottom:22px}
@@ -333,7 +356,7 @@ select.edf,input.edf[type=date]{color:var(--txt,#EEF1F7);background:var(--navy3)
   <main class="main">
     <div class="top">
       <h1 id="pageTitle">Visão geral</h1>
-      <label class="ctl"><span id="selLbl">Relatório</span> <select id="selReport"></select></label>
+      <label class="ctl" id="selCtl"><span id="selLbl">Relatório</span> <select id="selReport"></select></label><button class="ctl dp-btn" id="dpBtn" style="display:none" onclick="DP.open?dpClose():dpOpen()"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span style="color:var(--muted)">Período</span> <b id="dpTxt" style="font-weight:500"></b><svg viewBox="0 0 24 24" style="stroke:var(--muted);width:12px"><path d="M6 9l6 6 6-6"/></svg></button>
       <label class="ctl">Comparar <select id="selCompare"><option value="prev">Período anterior</option><option value="none">Sem comparação</option></select></label>
       <label class="ctl" title="Filtra as tabelas de campanhas por linha">Linha <select id="selProduct"><option value="all">Todas</option><option value="TRUST">[TRUST]</option><option value="SITE">[SITE]</option><option value="DREAM">[DREAM]</option><option value="RENT">[RENT]</option><option value="GREEN">[GREEN]</option><option value="CARGAS">[CARGAS]</option><option value="PRODUTOS">[PRODUTOS]</option><option value="INSTITUCIONAL">[INSTITUCIONAL]</option></select></label>
       <button class="btn icon" id="helpBtn" onclick="toggleExplain()" title="Mostrar explicações de cada bloco"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/></svg></button>
@@ -588,10 +611,11 @@ function perBounds(){const dk=Object.keys(REAL.daily?.days||{}).sort();return[dk
 function perState(){
   const [mn,mx]=perBounds();
   if(!state.per)state.per={a:perAdd(mx,-29),b:mx,cmp:"prev",gran:"auto",preset:"30"};
-  const C=state.per;if(C.a<mn)C.a=mn;if(C.b>mx)C.b=mx;if(C.a>C.b){const t=C.a;C.a=C.b;C.b=t;}return C;
+  const C=state.per;if(C.a<"2024-01-01")C.a="2024-01-01";if(C.a>C.b){const t=C.a;C.a=C.b;C.b=t;}return C;
 }
 function perCompare(C){
   if(C.cmp==="none")return null;
+  if(C.cmp==="custom")return C.ca&&C.cb?(C.ca<=C.cb?[C.ca,C.cb]:[C.cb,C.ca]):null;
   if(C.cmp==="year"){const y=d=>(+d.slice(0,4)-1)+d.slice(4);let b=y(C.b);if(b.endsWith("02-29"))b=b.slice(0,8)+"28";return[y(C.a).replace(/02-29$/,"02-28"),b];}
   const n=Math.round((new Date(C.b+"T12:00:00")-new Date(C.a+"T12:00:00"))/864e5)+1;return[perAdd(C.a,-n),perAdd(C.a,-1)];
 }
@@ -618,6 +642,96 @@ window.__perPreset=k=>{const C=perState(),[mn,mx]=perBounds();C.preset=k;
   else if(k[0]==="y"){const y=k.slice(1);C.a=y+"-01-01";C.b=y+"-12-31";}
   perState();render();};
 window.__perMonth=m=>{const C=perState(),i=MES_ABR.indexOf(m.split("/")[0]),y="20"+m.split("/")[1],mm=String(i+1).padStart(2,"0");C.a=`${y}-${mm}-01`;C.b=`${y}-${mm}-${String(new Date(+y,i+1,0).getDate()).padStart(2,"0")}`;C.preset=null;perState();};
+/* ---------- seletor de datas (estilo Meta) ---------- */
+const DP={open:false,d:null,view:null};
+const dpISO=x=>x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0");
+const dpToday=()=>dpISO(new Date());
+const dpMin="2024-01-01";
+const dpFmt=d=>{const [y,m,dd]=d.split("-");return `${+dd} de ${["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"][+m-1]}. de ${y}`;};
+const dpFB=d=>d.split("-").reverse().join("/");
+const DP_PRESETS=[["today","Hoje"],["yest","Ontem"],["ty","Hoje e ontem"],["7","Últimos 7 dias"],["14","Últimos 14 dias"],["28","Últimos 28 dias"],["30","Últimos 30 dias"],["90","Últimos 90 dias"],["tw","Esta semana"],["lw","Semana passada"],["mtd","Este mês"],["lm","Mês passado"],["ytd","Este ano"],["ly","Ano passado"],["max","Máximo"],["custom","Personalizado"]];
+function dpPresetRange(k){
+  const t=dpToday(),[mn,mx]=perBounds(),wd=x=>(new Date(x+"T12:00:00").getDay()+6)%7;
+  if(k==="today")return[t,t];if(k==="yest")return[perAdd(t,-1),perAdd(t,-1)];if(k==="ty")return[perAdd(t,-1),t];
+  if(/^\d+$/.test(k)){const y=perAdd(t,-1);return[perAdd(y,-(+k-1)),y];}
+  if(k==="tw")return[perAdd(t,-wd(t)),t];
+  if(k==="lw"){const s=perAdd(t,-wd(t)-7);return[s,perAdd(s,6)];}
+  if(k==="mtd")return[t.slice(0,8)+"01",t];
+  if(k==="lm"){const x=new Date(t.slice(0,8)+"01T12:00:00");x.setDate(0);const e=dpISO(x);return[e.slice(0,8)+"01",e];}
+  if(k==="ytd")return[t.slice(0,4)+"-01-01",t];
+  if(k==="ly"){const y=+t.slice(0,4)-1;return[y+"-01-01",y+"-12-31"];}
+  if(k==="max")return[mn,mx];return null;
+}
+function dpCurrent(){
+  if(state.page==="periodo"){const C=perState();return{a:C.a,b:C.b,preset:C.preset||"custom",cmpOn:C.cmp!=="none",cmpMode:C.cmp==="none"?"prev":C.cmp,ca:C.ca,cb:C.cb};}
+  const ms=allRealMonths(),m=state.mTo&&ms.includes(state.mTo)?state.mTo:ms[ms.length-1],i=MES_ABR.indexOf(m.split("/")[0]),y=2000+(+m.split("/")[1]);
+  const a=`${y}-${String(i+1).padStart(2,"0")}-01`,b=`${y}-${String(i+1).padStart(2,"0")}-${String(new Date(y,i+1,0).getDate()).padStart(2,"0")}`;
+  return{a,b,preset:"custom",cmpOn:true,cmpMode:"prev"};
+}
+function dpLabel(){
+  if(state.page==="periodo"){const C=perState();return `${dpFB(C.a)} a ${dpFB(C.b)}`;}
+  const ms=allRealMonths(),m=state.mTo&&ms.includes(state.mTo)?state.mTo:ms[ms.length-1],r=monthRange(m);return `${r.name} · ${PARTIAL[m]?PARTIAL[m]+" (parcial)":r.range}`;
+}
+function dpOpen(){
+  const c=dpCurrent();DP.d={...c,pick:null};const b=new Date(c.b+"T12:00:00");DP.view=[b.getFullYear(),b.getMonth()-1];if(DP.view[1]<0){DP.view=[DP.view[0]-1,11];}
+  DP.open=true;dpDraw();
+}
+function dpClose(){DP.open=false;const e=document.getElementById("dpPop");if(e)e.remove();document.removeEventListener("mousedown",dpOutside,true);}
+function dpOutside(e){const p=document.getElementById("dpPop");if(p&&!p.contains(e.target)&&!e.target.closest("#dpBtn"))dpClose();}
+function dpMonthGrid(y,m){
+  const d=DP.d,t=dpToday(),first=new Date(y,m,1),off=(first.getDay()+6)%7,n=new Date(y,m+1,0).getDate();
+  const ys=[];for(let k=2024;k<=+t.slice(0,4);k++)ys.push(k);
+  const MN=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+  const [lo,hi]=d.pick?[d.pick,d.pick]:[d.a,d.b];
+  let cells="";for(let i=0;i<off;i++)cells+="<span></span>";
+  for(let dd=1;dd<=n;dd++){const iso=`${y}-${String(m+1).padStart(2,"0")}-${String(dd).padStart(2,"0")}`,dis=iso>t||iso<dpMin;
+    const inR=iso>=lo&&iso<=hi,edge=iso===lo||iso===hi,cmp=d.cmpOn&&d.cmpRange&&iso>=d.cmpRange[0]&&iso<=d.cmpRange[1];
+    const cls=["dp-d",dis?"dis":"",inR?"in":"",edge?"edge":"",iso===lo&&!d.pick?"s":"",iso===hi&&!d.pick?"e":"",cmp&&!inR?"cmp":"",iso===t?"today":""].join(" ");
+    cells+=`<button class="${cls}" ${dis?"disabled":""} onclick="dpClick('${iso}')">${dd}</button>`;}
+  return `<div class="dp-m"><div class="dp-mh">
+    <select onchange="dpSetView(${y},this.value,0)">${MN.map((x,k)=>`<option value="${k}" ${k===m?"selected":""}>${x}</option>`).join("")}</select>
+    <select onchange="dpSetView(this.value,${m},1)">${ys.map(k=>`<option ${k===y?"selected":""}>${k}</option>`).join("")}</select></div>
+    <div class="dp-w">${["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"].map(x=>`<span>${x}</span>`).join("")}</div><div class="dp-g">${cells}</div></div>`;
+}
+window.dpSetView=(y,m,which)=>{y=+y;m=+m;const [vy,vm]=DP.view;
+  if(which===0||which===1){/* left calendar */}
+  DP.view=[y,m];dpDraw();};
+window.dpSetView2=(y,m)=>{y=+y;m=+m-1;if(m<0){m=11;y--;}DP.view=[y,m];dpDraw();};
+window.dpNav=s=>{let [y,m]=DP.view;m+=s;if(m<0){m=11;y--;}if(m>11){m=0;y++;}DP.view=[y,m];dpDraw();};
+window.dpClick=iso=>{const d=DP.d;d.preset="custom";if(!d.pick){d.pick=iso;}else{const a=d.pick<iso?d.pick:iso,b=d.pick<iso?iso:d.pick;d.a=a;d.b=b;d.pick=null;}dpDraw();};
+window.dpPreset=k=>{const r=dpPresetRange(k);DP.d.preset=k;DP.d.pick=null;if(r){DP.d.a=r[0];DP.d.b=r[1];const b=new Date(r[1]+"T12:00:00");DP.view=[b.getFullYear(),b.getMonth()-1];if(DP.view[1]<0)DP.view=[DP.view[0]-1,11];}dpDraw();};
+window.dpCmp=(k,v)=>{DP.d[k]=v;dpDraw();};
+function dpCmpRange(d){if(!d.cmpOn)return null;if(d.cmpMode==="custom")return d.ca&&d.cb?[d.ca,d.cb]:null;return perCompare({a:d.a,b:d.b,cmp:d.cmpMode});}
+function dpDraw(){
+  const d=DP.d;d.cmpRange=dpCmpRange(d);let p=document.getElementById("dpPop");
+  if(!p){p=document.createElement("div");p.id="dpPop";p.className="dp-pop";document.body.appendChild(p);setTimeout(()=>document.addEventListener("mousedown",dpOutside,true),0);}
+  const btn=document.getElementById("dpBtn").getBoundingClientRect();
+  const W=Math.min(980,window.innerWidth-24);p.style.width=W+"px";p.style.top=(btn.bottom+8)+"px";p.style.left=Math.max(12,Math.min(btn.left,window.innerWidth-W-12))+"px";
+  const [y,m]=DP.view,y2=m===11?y+1:y,m2=(m+1)%12,nd=Math.round((new Date(d.b+"T12:00:00")-new Date(d.a+"T12:00:00"))/864e5)+1;
+  const cr=d.cmpRange;
+  p.innerHTML=`<div class="dp-l">${DP_PRESETS.map(([k,l])=>`<label class="dp-r"><input type="radio" name="dpp" ${d.preset===k?"checked":""} onchange="dpPreset('${k}')"><span>${l}</span></label>`).join("")}</div>
+  <div class="dp-main">
+    <div class="dp-cals"><button class="dp-nav" onclick="dpNav(-1)" aria-label="Mês anterior">‹</button>${dpMonthGrid(y,m)}${dpMonthGrid(y2,m2).replace(/dpSetView\((\d+),this\.value,0\)/,"dpSetView2($1,this.value)").replace(/dpSetView\(this\.value,(\d+),1\)/,"dpSetView2(this.value,$1)")}<button class="dp-nav" onclick="dpNav(1)" aria-label="Próximo mês">›</button></div>
+    <div class="dp-sel"><span class="dp-sw" style="background:var(--y)"></span><b>${d.pick?dpFmt(d.pick)+" – escolha o fim":dpFmt(d.a)+" – "+dpFmt(d.b)}</b><span class="sub">${d.pick?"":nd+(nd===1?" dia":" dias")}</span></div>
+    <label class="dp-r" style="margin-top:6px"><input type="checkbox" ${d.cmpOn?"checked":""} onchange="dpCmp('cmpOn',this.checked)"><span>Comparar</span></label>
+    <div class="dp-cmp ${d.cmpOn?"":"off"}"><span class="dp-sw"></span>
+      <select class="edf" ${d.cmpOn?"":"disabled"} onchange="dpCmp('cmpMode',this.value)">${[["prev","Período anterior"],["year","Mesmo período do ano anterior"],["custom","Personalizado"]].map(([k,l])=>`<option value="${k}" ${d.cmpMode===k?"selected":""}>${l}</option>`).join("")}</select>
+      ${d.cmpMode==="custom"?`<input type="date" class="edf" min="${dpMin}" max="${dpToday()}" value="${d.ca||""}" onchange="dpCmp('ca',this.value)"> – <input type="date" class="edf" min="${dpMin}" max="${dpToday()}" value="${d.cb||""}" onchange="dpCmp('cb',this.value)">`:`<span class="dp-box">${cr?dpFmt(cr[0]):"—"}</span> – <span class="dp-box">${cr?dpFmt(cr[1]):"—"}</span>`}</div>
+    <div class="dp-ft"><span class="sub">Dados diários disponíveis de ${dpFB(perBounds()[0])} a ${dpFB(perBounds()[1])}. Um mês inteiro abre a visão mensal; qualquer outro intervalo abre o Período livre.</span>
+      <button class="btn" onclick="dpClose()">Cancelar</button><button class="btn btn-y" onclick="dpApply()" ${d.pick?"disabled":""}>Atualizar</button></div>
+  </div>`;
+}
+window.dpApply=()=>{
+  const d=DP.d;if(d.pick)return;const [mn,mx]=perBounds();
+  const a=d.a,b=d.b,last=new Date(+a.slice(0,4),+a.slice(5,7),0).getDate();
+  const fullMonth=a.slice(8)==="01"&&a.slice(0,7)===b.slice(0,7)&&(+b.slice(8)===last||b>=mx||b===dpToday());
+  const m=perMonthOf(a);
+  if(state.page!=="periodo"&&REAL_PAGES.includes(state.page)&&fullMonth&&allRealMonths().includes(m)){state.mTo=m;state.metaMonth=null;dpClose();render();return;}
+  state.per={...(state.per||{gran:"auto"}),a,b,preset:d.preset,cmp:d.cmpOn?d.cmpMode:"none",ca:d.ca,cb:d.cb};
+  dpClose();if(state.page!=="periodo")location.hash="#periodo";else render();
+};
+window.addEventListener("resize",()=>{if(DP.open)dpDraw();});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&DP.open)dpClose();});
 
 
 REAL.channels=REAL.channels||{};REAL.google=REAL.google||{};REAL.inflCost={};
@@ -1730,7 +1844,7 @@ periodo(){
   const dv=(a,b)=>a==null||!b?null:a/b,V=f=>[f(ra),cmp?f(rb):null];
   const presetBtn=(l,k)=>`<button class="btn" style="height:28px;font-size:11px;${C.preset===k?'border-color:var(--y);color:var(--y)':''}" onclick="__perPreset('${k}')">${l}</button>`;
   const years=[...new Set(dk.map(d=>d.slice(0,4)))];
-  const cSel=`<select class="edf" style="height:34px" onchange="state.per.cmp=this.value;render()">${[["prev","período anterior (mesmo nº de dias)"],["year","mesmo período do ano anterior"],["none","sem comparação"]].map(([k,l])=>`<option value="${k}" ${C.cmp===k?"selected":""}>${l}</option>`).join("")}</select>`;
+  const cSel=`<select class="edf" style="height:34px" onchange="state.per.cmp=this.value;render()">${[["prev","período anterior (mesmo nº de dias)"],["year","mesmo período do ano anterior"],...(C.cmp==="custom"?[["custom","personalizado ("+fd(C.ca)+" a "+fd(C.cb)+")"]]:[]),["none","sem comparação"]].map(([k,l])=>`<option value="${k}" ${C.cmp===k?"selected":""}>${l}</option>`).join("")}</select>`;
   const gSel=["auto","dia","semana","mes"].map(k=>`<button class="btn" style="height:28px;font-size:11px;${C.gran===k?'border-color:var(--y);color:var(--y)':''}" onclick="state.per.gran='${k}';render()">${{auto:"automático",dia:"por dia",semana:"por semana",mes:"por mês"}[k]}</button>`).join("");
   const nd=ra.length,lblCmp=cmp?`vs ${fd(cmp[0])} a ${fd(cmp[1])}`:"sem comparação";
   const RS=resMonthly(true),full=perFullMonths(C.a,C.b),fm=full.filter(m=>RS.months.includes(m));
@@ -1740,11 +1854,10 @@ periodo(){
     grp.forEach(g=>{const t=tot(g.d),l=S(g.d,"metaLeads");L.push([g.l,S(g.d,"meta"),S(g.d,"google"),S(g.d,"gpt"),t,clk(g.d),l,dv(S(g.d,"meta"),l),S(g.d,"gaSess"),S(g.d,"resSite"),S(g.d,"wpp")].map(v=>v==null?"":typeof v==="number"?String(+v.toFixed(2)).replace(".",","):v).join(";"));});
     dlCSV(L.join("\n"),`yalla-periodo-${C.a}-a-${C.b}.csv`);};
   return`${sec("Período livre (calendário)","escolha qualquer data de "+fd(dmin)+" a "+fd(dmax)+" · dados diários via Supermetrics")}
-  <div class="card" style="margin-bottom:14px">
-    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="sub">De</span><input type="date" class="edf" style="height:34px" min="${dmin}" max="${dmax}" value="${C.a}" onchange="__perSet('a',this.value)"><span class="sub">até</span><input type="date" class="edf" style="height:34px" min="${dmin}" max="${dmax}" value="${C.b}" onchange="__perSet('b',this.value)">
-      <span class="sub" style="margin-left:10px">comparar com</span>${cSel}<button class="btn" style="height:32px;font-size:12px;margin-left:auto" onclick="__perCSV()">Baixar CSV</button></div>
-    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">${presetBtn("Ontem","1")}${presetBtn("Últimos 7 dias","7")}${presetBtn("Últimos 14","14")}${presetBtn("Últimos 30","30")}${presetBtn("Últimos 90","90")}${presetBtn("Este mês","mtd")}${presetBtn("Mês passado","lm")}${presetBtn("Últimos 12 meses","365")}${years.map(y=>presetBtn(y==dmax.slice(0,4)?y+" (até hoje)":y,"y"+y)).join("")}${presetBtn("Todo o histórico","all")}</div>
-    <p style="font-size:11px;color:var(--dim);margin-top:10px">${fd(C.a)} a ${fd(C.b)} · ${nd} ${nd===1?"dia":"dias"} · ${lblCmp}${cmp&&rb.length<nd?` (só ${rb.length} dias com dados no período de comparação)`:""}</p>
+  <div class="card" style="margin-bottom:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+    <button class="btn btn-y" style="height:36px" onclick="document.getElementById('dpBtn').click()">📅 ${fd(C.a)} a ${fd(C.b)} · alterar datas</button>
+    <span class="sub">${nd} ${nd===1?"dia":"dias"} · ${lblCmp}${cmp&&rb.length<nd&&rb.length?` (só ${rb.length} dias com dados no período de comparação)`:""}</span>
+    <span class="sub" style="margin-left:auto">comparar com</span>${cSel}<button class="btn" style="height:32px;font-size:12px" onclick="__perCSV()">Baixar CSV</button>
   </div>
   ${nd?`<div class="grid kpis k4">
     ${kpi({lbl:"Investimento em mídia",v:V(tot),f:v=>brl(v),hl:true,sub:"Meta + Google + ChatGPT"})}
@@ -3073,8 +3186,10 @@ function render(){
     const isPer=state.page==="periodo",PC=isPer?perState():null,fdd=d=>d.split("-").reverse().join("/");
     lbl.textContent="Período";sel.innerHTML=(isPer?`<option value="__cur" selected>📅 ${fdd(PC.a)} a ${fdd(PC.b)}</option>`:`<option value="__cal">📅 Escolher datas no calendário…</option>`)+`<optgroup label="Meses">`+ms.slice().reverse().map(m=>{const r=monthRange(m);return`<option value="${m}" ${!isPer&&m===cur?"selected":""}>${r.name} · ${PARTIAL[m]?PARTIAL[m]+" (parcial)":r.range}</option>`}).join("")+`</optgroup>`;
     sel.onchange=e=>{const v=e.target.value;if(v==="__cur")return;if(v==="__cal"){location.hash="#periodo";return;}if(isPer){__perMonth(v);render();return;}state.mTo=v;state.metaMonth=null;render();};
+    document.getElementById("selCtl").style.display="none";const dpb=document.getElementById("dpBtn");dpb.style.display="flex";document.getElementById("dpTxt").textContent=dpLabel();if(DP.open)dpClose();
     const rr=monthRange(cur);document.getElementById("pageTitle").innerHTML=isPer?`${pg.name}<small>${fdd(PC.a)} a ${fdd(PC.b)} · qualquer data desde ${fdd(perBounds()[0])}</small>`:`${pg.name}<small>${rr.name} · ${PARTIAL[cur]?PARTIAL[cur]+" (parcial)":rr.range} · vs mês anterior</small>`;
   }else{
+    document.getElementById("selCtl").style.display="";document.getElementById("dpBtn").style.display="none";if(DP.open)dpClose();
     lbl.textContent="Período (exemplo)";sel.innerHTML=HISTORY.filter(h=>REPORTS[h.id]).map(h=>`<option value="${h.id}" ${h.id===state.report?"selected":""}>${h.label} · ${h.period}</option>`).join("");
     sel.onchange=e=>{state.report=e.target.value;render();};
     document.getElementById("pageTitle").innerHTML=`${pg.name}<small>${state.page==="concorrencia"?"Consulta "+(COMP.date||"—"):r.label+" · "+r.period}</small>`;
