@@ -24,7 +24,7 @@ function parse(kml) {
       }).filter(p => p.length);
       if (polys.length) { areas.push({ name: name || desc || "Área de risco", desc: desc && desc !== name ? desc : "", folder, polys }); continue; }
       const pt = pm.match(/<Point>[\s\S]*?<coordinates>([\s\S]*?)<\/coordinates>/);
-      if (pt) { const c = ring(pt[1])[0]; if (c) points.push({ name: name || desc || "Ponto", desc: name && desc ? desc : "", folder, kind: /1539/.test(style) || /oficina/i.test(folder + " " + name + " " + desc) ? "oficina" : "ponto", lng: c[0], lat: c[1] }); }
+      if (pt) { const c = ring(pt[1])[0]; if (c) points.push({ name: name || desc || "Ponto", desc: name && desc ? desc : "", folder, kind: /1539/.test(style) ? "oficina" : "ponto", lng: c[0], lat: c[1] }); }
     }
   }
   return { areas, points };
