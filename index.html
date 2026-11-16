@@ -1013,6 +1013,12 @@ function persLayout(){ /* posições em % do palco, por anéis */
   const act=persState().cat,items=PERS.map((p,i)=>({...p,i}));
   const rings=[items.filter(p=>p.w===3),items.filter(p=>p.w===2),items.filter(p=>p.w===1)],R=[[24,27],[37,38],[45,46]],out=[];
   rings.forEach((r,ri)=>r.forEach((p,k)=>{const a=(k/r.length)*Math.PI*2+ri*.55-Math.PI/2;const z=ri===1?(k%2?1.12:.9):ri===0?(k%2?1.06:.94):1;out.push({...p,x:Math.cos(a)*R[ri][0]*z,y:Math.sin(a)*R[ri][1]*z,ring:ri,dim:act!=="all"&&p.c!==act});}));
+  out.forEach(o=>{o.w=(o.t.length*(o.ring===0?8.6:7.6)+34)/8.2/2;o.h=(o.ring===0?42:36)/6.6/2;});
+  for(let it=0;it<140;it++){for(let i=0;i<out.length;i++){const a=out[i];
+      for(let j=i+1;j<out.length;j++){const b=out[j],ox=a.w+b.w+.8-Math.abs(a.x-b.x),oy=a.h+b.h+.9-Math.abs(a.y-b.y);
+        if(ox>0&&oy>0){if(oy<ox*.8){const s=(a.y<=b.y?-1:1)*oy/2;a.y+=s;b.y-=s;}else{const s=(a.x<=b.x?-1:1)*ox/2;a.x+=s;b.x-=s;}}}
+      const cx=14+a.w,cy=19+a.h;if(Math.abs(a.x)<cx&&Math.abs(a.y)<cy){if(cx-Math.abs(a.x)<cy-Math.abs(a.y))a.x=(a.x<0?-1:1)*cx;else a.y=(a.y<0?-1:1)*cy;}
+      a.x=Math.max(-49+a.w,Math.min(49-a.w,a.x));a.y=Math.max(-47+a.h,Math.min(47-a.h,a.y));}}
   return out;
 }
 function persAvatar(){return`<svg viewBox="0 0 200 200" width="100%" height="100%" aria-hidden="true">
