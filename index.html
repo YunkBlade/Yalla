@@ -142,6 +142,7 @@ body.side-min .nav a .cnt{position:absolute;top:2px;right:4px;font-size:9px;padd
 .mp-s{color:var(--muted);font-size:12px;margin:3px 0 8px}.mp-a{color:var(--y);font-size:12px;font-weight:600;text-decoration:none}
 #mapaHit a{color:var(--y);font-weight:600;text-decoration:none}
 @media (max-width:1000px){.mp-wrap{grid-template-columns:1fr}.mp-side{height:320px;min-height:0}.mp-map{height:70vh}}
+.ap-t table{table-layout:auto;width:100%}.ap-t td,.ap-t th{white-space:normal!important;vertical-align:top;min-width:90px}
 /* main */
 .main{padding:0 32px 64px;min-width:0}
 .top{position:sticky;top:0;z-index:5;background:var(--topbg);backdrop-filter:blur(8px);display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:20px 0 16px;border-bottom:1px solid var(--line);margin-bottom:22px}
@@ -713,6 +714,7 @@ async function mapaLoad(force){
     MAPA.data=mapaPrep(j);MAPA.st="ok";MAPA.err="";}
   catch(e){MAPA.st=MAPA.data?"cache":"err";MAPA.err=e.message||"Falha ao buscar o mapa";}
   if(state.page==="mapa"){if(MAPA.map)mapaSync();render();}
+  mapaHist();
 }
 function mapaStatus(){const e=document.getElementById("mapaSt");if(e)e.innerHTML=mapaStatusHTML();}
 function mapaStatusHTML(){
@@ -838,6 +840,93 @@ function mapaHit(){const e=document.getElementById("mapaHit");if(!e)return;const
 function mapaList(){const e=document.getElementById("mapaList");if(!e)return;const q=mapaNorm(MAPA.q.trim()),A=(MAPA.data?.areas||[]).filter(a=>!q||q.length<2||mapaNorm(a.name).includes(q)),all=MAPA.data?.areas||[];
   const show=A.length?A:all;
   e.innerHTML=(q.length>=2&&!A.length?`<div class="mp-sn" style="padding:8px 4px">Nenhuma área com esse nome — mostrando todas.</div>`:"")+show.slice().sort((a,b)=>a.name.localeCompare(b.name,"pt-BR")).map(a=>`<button class="mp-li ${MAPA.sel===a.i?"on":""}" data-i="${a.i}" onclick="mapaFocus(${a.i})"><span class="mp-d"></span><span class="mp-n">${mapaEsc(a.name)}</span><span class="mp-k">${a.km2>=1?a.km2.toFixed(1).replace(".",",")+" km²":Math.round(a.km2*100)+" ha"}</span></button>`).join("");}
+/* ---------- motoristas de app · 99 e Uber (dados/apps.json, atualizado toda semana) ---------- */
+const APPS={d:null,st:"idle",err:""};
+async function appsLoad(){if(APPS.st==="loading"||APPS.st==="ok")return;APPS.st="loading";
+  try{const r=await fetch("dados/apps.json?v="+Math.floor(Date.now()/36e5),{cache:"no-cache"});if(!r.ok)throw new Error("erro "+r.status);APPS.d=await r.json();APPS.st="ok";try{localStorage.setItem("yalla_apps_v1",JSON.stringify(APPS.d));}catch(e){}}
+  catch(e){try{APPS.d=JSON.parse(localStorage.getItem("yalla_apps_v1")||"null");}catch(_){}APPS.st=APPS.d?"ok":"err";APPS.err=e.message;}
+  if(["motoristas","apps"].includes(state.page))render();}
+const apA=(f,u)=>u?`<a href="${mapaEsc(u)}" target="_blank" rel="noopener" style="color:var(--y);text-decoration:none;white-space:nowrap">${mapaEsc(f||"fonte")} ↗</a>`:mapaEsc(f||"");
+const apWait=()=>APPS.st==="err"?`<div class="empty" style="padding:50px">Não foi possível carregar a pesquisa (${mapaEsc(APPS.err)}).<br><button class="btn" style="margin-top:12px" onclick="APPS.st='idle';appsLoad()">Tentar de novo</button></div>`:`<div class="empty" style="padding:50px">Carregando a pesquisa…</div>`;
+const apHead=d=>`<p style="font-size:11.5px;color:var(--dim);margin:-4px 0 14px;line-height:1.5">Pesquisa atualizada em <b style="color:var(--muted)">${mapaEsc(d.updated)}</b> · revisão automática toda segunda-feira. ${mapaEsc(d.nota||"")}</p>`;
+const apTagC={Uber:"#EEF1F7","99":"#F2A314",inDrive:"#A7E92F",Mercado:"#5b8def","Regulação":"#FF6363"};
+const apTag=a=>`<span style="font:700 10px Montserrat;letter-spacing:.06em;padding:3px 7px;border-radius:5px;border:1px solid ${apTagC[a]||"var(--line2)"};color:${apTagC[a]||"var(--muted)"};white-space:nowrap">${mapaEsc(a)}</span>`;
+function apNews(d,apps){const N=(d.noticias||[]).filter(n=>!apps||apps.includes(n.app));
+  return N.length?`<div class="tbl-wrap ap-t"><table><thead><tr><th>Quando</th><th></th><th>O que mudou</th><th>O que significa para a Yalla</th><th>Fonte</th></tr></thead><tbody>${N.map(n=>`<tr><td style="white-space:nowrap;color:var(--muted)">${mapaEsc(n.d)}</td><td>${apTag(n.app)}</td><td><b>${mapaEsc(n.t)}</b></td><td style="color:var(--muted)">${mapaEsc(n.imp||"")}</td><td>${apA(n.f,n.u)}</td></tr>`).join("")}</tbody></table></div>`:'<div class="empty">Sem novidades registradas.</div>';}
+function apPlat(d,names){const P_=(d.plataformas||[]).filter(p=>!names||names.includes(p.nome)),rows=[...new Set(P_.flatMap(p=>p.linhas.map(l=>l[0])))];
+  return`<div class="tbl-wrap ap-t"><table><thead><tr><th style="width:150px"></th>${P_.map(p=>`<th style="color:${p.cor};font-size:13px">${mapaEsc(p.nome)}</th>`).join("")}</tr></thead><tbody>
+    ${rows.map(r=>`<tr><td style="color:var(--muted);font-weight:600">${mapaEsc(r)}</td>${P_.map(p=>{const l=p.linhas.find(x=>x[0]===r);return`<td style="line-height:1.5">${l?mapaEsc(l[1]):'<span style="color:var(--dim)">—</span>'}</td>`}).join("")}</tr>`).join("")}
+    <tr><td style="color:var(--muted);font-weight:600">Fontes</td>${P_.map(p=>`<td style="font-size:11.5px">${(p.fontes||[]).map(f=>apA(f[0],f[1])).join(" · ")}</td>`).join("")}</tr></tbody></table></div>`;}
+/* calculadora */
+function apCalcState(d){const c=d.calc||{};if(!state.apc)state.apc={car:null,plan:"5",...c};return state.apc;}
+function apCalc(d){
+  const S=apCalcState(d),ms=compModels().filter(m=>pBR(m.p5)||pBR(m.livre));if(!ms.length)return'<div class="empty">A lista de carros da Yalla ainda não carregou (planilha de concorrência).</div>';
+  let car=ms.find(m=>m.modelo===S.car)||ms.find(m=>/polo track|argo$/i.test(m.modelo))||ms[0];S.car=car.modelo;
+  const price={"5":pBR(car.p5),"6":pBR(car.p6),livre:pBR(car.livre)};if(price[S.plan]==null)S.plan=price["5"]!=null?"5":"livre";
+  const el=/el[eé]tric/i.test(car.motor||""),alug=price[S.plan],fat=S.horas*S.ganhoHora,energia=el?S.kmSemana*S.kwhKm*S.kwh:S.kmSemana/S.kmLitro*S.combustivel;
+  const sobra=fat-alug-energia-S.outros,kmMes=S.kmSemana*4.33,lim=S.plan==="5"?5000:S.plan==="6"?6000:null,over=lim&&kmMes>lim;
+  const inp=(k,l,step,suf)=>`<label style="display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--muted)">${l}<span style="display:flex;align-items:center;gap:6px"><input class="edf" type="number" step="${step}" min="0" value="${S[k]}" style="height:36px;width:110px;color:var(--txt);background:var(--navy3);border:1px solid var(--line2);border-radius:8px;padding:0 10px;font:600 13px Montserrat;color-scheme:dark" onchange="state.apc.${k}=Math.max(0,+this.value||0);render()"><span style="color:var(--dim)">${suf}</span></span></label>`;
+  const bar=(l,v,c)=>`<div style="display:flex;align-items:center;gap:10px;margin:7px 0"><span style="width:150px;font-size:12px;color:var(--muted)">${l}</span><div style="flex:1;height:10px;background:var(--navy3);border-radius:6px;overflow:hidden"><span style="display:block;height:100%;width:${fat?Math.max(0,Math.min(100,v/fat*100)):0}%;background:${c}"></span></div><b style="width:96px;text-align:right;font-size:12.5px">${brl(v)}</b><span style="width:44px;text-align:right;font-size:11px;color:var(--dim)">${fat?pct(v/fat*100,0):"—"}</span></div>`;
+  return`<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px">
+      <label style="display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--muted)">Carro da Yalla<select class="edf" style="height:36px;min-width:220px" onchange="state.apc.car=this.value;render()">${ms.map(m=>`<option ${m.modelo===car.modelo?"selected":""}>${mapaEsc(m.modelo)}</option>`).join("")}</select></label>
+      <label style="display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--muted)">Plano semanal<select class="edf" style="height:36px" onchange="state.apc.plan=this.value;render()">${[["5","5.000 km"],["6","6.000 km"],["livre","KM livre"]].filter(([k])=>price[k]!=null).map(([k,l])=>`<option value="${k}" ${S.plan===k?"selected":""}>${l} · ${brl(price[k])}</option>`).join("")}</select></label>
+      ${inp("horas","Horas por semana",1,"h")}${inp("ganhoHora","Ganho por hora (já sem a taxa do app)",1,"R$/h")}${inp("kmSemana","Km rodados por semana",50,"km")}
+      ${el?inp("kwhKm","Consumo",0.01,"kWh/km")+inp("kwh","Preço da recarga",0.05,"R$/kWh"):inp("kmLitro","Consumo",0.5,"km/l")+inp("combustivel","Preço do combustível",0.05,"R$/l")}${inp("outros","Outros custos na semana",10,"R$")}
+    </div>
+    <div class="grid kpis k4" style="margin:0 0 12px">
+      ${kpi({lbl:"Faturamento na semana",v:[fat,null],f:v=>brl(v),sub:`${S.horas} h × ${brl(S.ganhoHora)}`})}
+      ${kpi({lbl:"Sobra na semana",v:[sobra,null],f:v=>brl(v),hl:true,sub:"depois de aluguel, energia e outros"})}
+      ${kpi({lbl:"Sobra no mês",v:[sobra*4.33,null],f:v=>brl(v),sub:"semana × 4,33"})}
+      ${kpi({lbl:"Sobra por hora trabalhada",v:[S.horas?sobra/S.horas:null,null],f:v=>brl(v,2),sub:"o que fica no bolso"})}
+    </div>
+    ${bar("Aluguel Yalla",alug,"var(--y)")}${bar(el?"Recarga":"Combustível",energia,"#5b8def")}${bar("Outros custos",S.outros,"var(--dim)")}${bar("Sobra",Math.max(0,sobra),"var(--green)")}
+    ${over?`<p style="font-size:12px;color:var(--amber);margin-top:10px">⚠ ${num(Math.round(kmMes))} km por mês passa do plano de ${num(lim)} km. Compare com o plano maior ou KM livre.</p>`:""}
+    <p style="font-size:11px;color:var(--dim);margin-top:10px;line-height:1.5">Simulação. Preço do aluguel vem da planilha de concorrência (aba Frota Yalla); horas, ganho por hora, km, consumo e preços são <b>premissas que você ajusta</b>, não dados medidos. O ganho por hora inicial (R$ 43) é uma conta aproximada: renda média do IBGE somada ao custo mensal do TST, dividida pelas horas trabalhadas. Não inclui caução, multas nem imposto.</p>`;
+}
+function apFrota(d){
+  const R=d.requisitos||{},ms=compModels();if(!ms.length)return'<div class="empty">A lista de carros da Yalla ainda não carregou.</div>';
+  const lvl={alto:["var(--red)","Atenção"],medio:["var(--amber)","Depende do ano"],info:["var(--muted)","Não é passageiro"],ok:["var(--green)","Ok"],std:["var(--green)","Ok"]};
+  const rows=ms.map(m=>{const n=normTxt(m.modelo),hits=(R.frota||[]).filter(f=>f.match.some(k=>n.includes(normTxt(k))));const rank={alto:0,medio:1,info:2,ok:3};hits.sort((a,b)=>rank[a.nivel]-rank[b.nivel]);const h=hits[0];return{m,nivel:h?h.nivel:"std",nota:hits.length?hits.map(x=>x.nota).join(" "):R.padrao};});
+  const ord={alto:0,medio:1,info:2,ok:3,std:4};rows.sort((a,b)=>ord[a.nivel]-ord[b.nivel]||a.m.modelo.localeCompare(b.m.modelo));
+  const n=k=>rows.filter(r=>r.nivel===k).length;
+  return`<p style="font-size:12.5px;color:var(--muted);margin:0 0 10px"><b style="color:var(--red)">${n("alto")}</b> com ponto de atenção · <b style="color:var(--amber)">${n("medio")}</b> dependem do ano do carro · <b style="color:var(--green)">${n("ok")+n("std")}</b> sem restrição encontrada · ${n("info")} utilitários</p>
+  <div class="tbl-wrap ap-t" style="max-height:520px;overflow:auto"><table><thead><tr><th>Carro da Yalla</th><th>Categoria Yalla</th><th>Situação</th><th>Regra que se aplica (São Paulo)</th></tr></thead><tbody>${rows.map(r=>`<tr><td><b>${mapaEsc(r.m.modelo)}</b></td><td style="color:var(--muted)">${mapaEsc(r.m.cat||"")}</td><td style="white-space:nowrap"><span style="color:${lvl[r.nivel][0]};font-weight:700;font-size:12px">● ${lvl[r.nivel][1]}</span></td><td style="color:var(--muted);line-height:1.5">${mapaEsc(r.nota||"")}</td></tr>`).join("")}</tbody></table></div>
+  <p style="font-size:11px;color:var(--dim);margin-top:8px;line-height:1.5">O painel não sabe o ano de fabricação de cada carro da frota: a situação indica só onde existe regra de ano ou de modelo. As listas oficiais mudam todo janeiro.</p>`;
+}
+const APPS_PAGES={
+motoristas(){const d=APPS.d;if(!d)return sec("Motoristas de app","99, Uber e inDrive")+apWait();const p=d.panorama||{};
+  return`${sec("Motoristas de app","99, Uber e inDrive · quem é o cliente da Yalla, quanto ganha e o que mudou")}${apHead(d)}
+  <div class="grid kpis k4">${(p.kpis||[]).map(k=>`<div class="card kpi"><div class="lbl">${mapaEsc(k.l)}</div><div class="val">${mapaEsc(k.v)}</div><div class="row"><span class="sub">${mapaEsc(k.s)} · ${apA("fonte",k.u)}</span></div></div>`).join("")}</div>
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(340px,1fr))">
+    ${T("Panorama do mercado",`<ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.65;color:var(--txt)">${(p.pontos||[]).map(x=>`<li style="margin-bottom:6px">${mapaEsc(x.t)} <span style="font-size:11.5px">${apA(x.f,x.u)}</span></li>`).join("")}</ul>`)}
+    ${T("Leitura para a Yalla",`<p style="font-size:13.5px;line-height:1.7;color:var(--txt);margin:0">${mapaEsc(p.leitura||"")}</p>`)}
+  </div>
+  ${T("Calculadora de ganhos do motorista",apCalc(d),"quanto sobra por semana com cada carro e plano da Yalla")}
+  ${T("Comparativo das 3 plataformas",apPlat(d))}
+  ${T("Notícias e mudanças",apNews(d))}`;},
+apps(){const d=APPS.d;if(!d)return sec("99 e Uber","requisitos, taxas e parcerias")+apWait();const R=d.requisitos||{};
+  return`${sec("99 e Uber","requisitos de veículo, taxas, parcerias com locadoras e notícias das duas empresas")}${apHead(d)}
+  ${T("Sua frota nas categorias de Uber e 99",apFrota(d),"cruzamento com a aba Frota Yalla da planilha")}
+  ${T("Requisitos de veículo por categoria",`<div class="tbl-wrap ap-t"><table><thead><tr><th></th><th>Categoria</th><th>Regra</th><th>Fonte</th></tr></thead><tbody>${(R.categorias||[]).map(c=>`<tr><td>${apTag(c.app)}</td><td style="white-space:nowrap"><b>${mapaEsc(c.cat)}</b></td><td style="line-height:1.55;color:var(--muted)">${mapaEsc(c.regra)}</td><td>${apA(c.f,c.u)}</td></tr>`).join("")}</tbody></table></div>`)}
+  ${T("Taxas e ganhos: Uber × 99",apPlat(d,["Uber","99"]))}
+  ${T("Parcerias com locadoras e alternativas ao aluguel",`<div class="tbl-wrap ap-t"><table><thead><tr><th>Quem</th><th>O que oferece</th><th>Fonte</th></tr></thead><tbody>${(d.parcerias||[]).map(x=>`<tr><td style="white-space:nowrap"><b>${mapaEsc(x.quem)}</b></td><td style="line-height:1.55;color:var(--muted)">${mapaEsc(x.o)}</td><td>${apA(x.f,x.u)}</td></tr>`).join("")}</tbody></table></div>${d.oportunidade?`<p style="font-size:13px;color:var(--txt);margin-top:12px;padding:10px 12px;border-left:3px solid var(--y);background:var(--y-soft);border-radius:0 8px 8px 0">${mapaEsc(d.oportunidade)}</p>`:""}`)}
+  ${T("Notícias das empresas",apNews(d,["Uber","99","Regulação","Mercado"]))}`;},
+motoristas_after(){appsLoad();},apps_after(){appsLoad();}
+};
+/* ---------- histórico de mudanças do mapa ---------- */
+function mapaSig(a){const s=JSON.stringify(a.polys);let h=5381;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return(h>>>0).toString(16)+"-"+s.length;}
+async function mapaHist(){
+  if(!AUTH_ON||!SESS?.token||!MAPA.data?.areas?.length)return;const seen={};
+  const areas=MAPA.data.areas.map(a=>{let n=a.name;seen[n]=(seen[n]||0)+1;if(seen[n]>1)n+=" ("+seen[n]+")";return{name:n,sig:mapaSig(a),km2:+a.km2.toFixed(4)};});
+  try{const r=await rpc("panel_mapa_sync",{p_token:SESS.token,p_areas:MAPA.st==="ok"?areas:null});MAPA.log=r.log||[];MAPA.logErr="";}catch(e){MAPA.logErr=e.message;}
+  const el=document.getElementById("mapaLog");if(el)el.innerHTML=mapaLogHTML();}
+function mapaLogHTML(){
+  if(!AUTH_ON)return'<div class="mp-sn">O histórico funciona na versão publicada do painel (precisa do login).</div>';
+  if(MAPA.logErr)return`<div class="mp-sn">Histórico indisponível agora (${mapaEsc(MAPA.logErr)}).</div>`;
+  if(!MAPA.log)return'<div class="mp-sn">Carregando o histórico…</div>';
+  const K={nova:["var(--red)","Nova área"],removida:["var(--green)","Área removida"],alterada:["var(--amber)","Área alterada"],voltou:["var(--red)","Área voltou"],inicio:["var(--muted)","Início do registro"]};
+  const only=MAPA.log.length===1&&MAPA.log[0].kind==="inicio";
+  return`<div class="tbl-wrap" style="max-height:300px;overflow:auto"><table><tbody>${MAPA.log.map(l=>{const k=K[l.kind]||["var(--muted)",l.kind];return`<tr><td style="white-space:nowrap;color:var(--muted);width:120px">${new Date(l.at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"})}</td><td style="white-space:nowrap;width:140px"><b style="color:${k[0]};font-size:12px">● ${k[1]}</b></td><td><b>${mapaEsc(l.name||"")}</b> <span style="color:var(--muted)">${mapaEsc(l.detail||"")}</span></td></tr>`}).join("")}</tbody></table></div>${only?'<p class="mp-sn" style="padding:8px 0 0">Nenhuma mudança desde o início do registro. Áreas novas, removidas ou redesenhadas no My Maps vão aparecer aqui com data e hora.</p>':""}`;}
 /* ---------- seletor de datas (estilo Meta) ---------- */
 const DP={open:false,d:null,view:null};
 const dpISO=x=>x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0");
@@ -1152,7 +1241,7 @@ function startApp(){
   document.getElementById("authGate")?.remove();
   PRES=PAGES.filter(p=>p.id&&!["historico","importar","usuarios"].includes(p.id)&&canSee(p.id)).map(p=>p.id);
   renderUserBox();render();hideBoot();
-  if(!APP_STARTED){APP_STARTED=true;setTimeout(()=>syncCompLive(false),400);}
+  if(!APP_STARTED){APP_STARTED=true;setTimeout(()=>syncCompLive(false),400);setTimeout(()=>{if(canSee("mapa")&&MAPA.st==="idle")mapaLoad();},2500);}
 }
 async function authBoot(){
   if(!AUTH_ON){startApp();return;}
@@ -1183,7 +1272,7 @@ const inviteURL=code=>location.origin+location.pathname+"#convite="+code;
 const UPRESETS={
   diretoria:{l:"Diretoria (resultados)",tabs:["geral","alertas","mensal","periodo","comparar","reservas","receita","funil","analise"]},
   midia:{l:"Mídia paga",tabs:["geral","alertas","mensal","diario","periodo","comparar","meta","google","gpt","campanhas","criativos","seo"]},
-  comercial:{l:"Comercial",tabs:["geral","reservas","funil","produtos","concorrencia","mapa"]},
+  comercial:{l:"Comercial",tabs:["geral","reservas","funil","produtos","concorrencia","mapa","motoristas","apps"]},
   influ:{l:"Influenciadores",tabs:["influencers"]}
 };
 const MEDIA_COLORS=()=>({"Meta Ads":Y,"Google Ads":B,"ChatGPT Ads":"#10A37F","Influenciadores":"#F687B3"});
@@ -1672,6 +1761,9 @@ const PAGES=[
   {id:"concorrencia",name:"Concorrência",ic:"chess"},
   {id:"mapa",name:"Mapa de risco",ic:"pin",tag:"NOVO"},
   {id:"analise",name:"Análise e próximos passos",ic:"notes"},
+  {grp:"Mercado"},
+  {id:"motoristas",name:"Motoristas de app",ic:"car",tag:"NOVO"},
+  {id:"apps",name:"99 e Uber",ic:"chess",tag:"NOVO"},
   {grp:"Dados"},
   {id:"historico",name:"Histórico",ic:"hist"},
   {id:"fontes",name:"Fontes de dados",ic:"db"},
@@ -2127,6 +2219,7 @@ mapa(){
   </div>
   <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px"><span id="mapaSt" class="sub" style="font-size:12px">${mapaStatusHTML()}</span><button class="btn" style="height:30px;font-size:11.5px" onclick="mapaLoad(true)">Atualizar agora</button>
     <a class="sub" style="font-size:12px;color:var(--y);margin-left:auto" target="_blank" rel="noopener" href="https://www.google.com/maps/d/edit?mid=1WPD0IBoDn2vaaI8tlxKKPhU2mo4A4Dk">Editar no Google My Maps ↗</a></div>
+  <div class="card" style="margin-top:14px"><h3>Histórico de mudanças nas regiões<em>registrado automaticamente a cada sincronização com o My Maps</em></h3><div id="mapaLog">${mapaLogHTML()}</div></div>
   <p style="font-size:11px;color:var(--dim);margin-top:8px;line-height:1.5">As áreas vêm da camada “Área de risco/desmanche” do My Maps da Yalla: o que for desenhado ou apagado lá aparece aqui em até 5 minutos. A busca de cidades usa o OpenStreetMap (o texto pesquisado é enviado para lá) e as distâncias são aproximadas, em linha reta. Arraste para mover, role para aproximar e segure o botão direito (ou dois dedos) para inclinar.</p>`;
 },
 mapa_after(){mapaList();mapaHit();if(MAPA.st==="idle")mapaLoad();if(MAPA.map)mapaMount();else if(!MAPA.libErr)mapaInit();},
@@ -3414,16 +3507,16 @@ function render(){
     document.getElementById("selCtl").style.display="";document.getElementById("dpBtn").style.display="none";if(DP.open)dpClose();
     lbl.textContent="Período (exemplo)";sel.innerHTML=HISTORY.filter(h=>REPORTS[h.id]).map(h=>`<option value="${h.id}" ${h.id===state.report?"selected":""}>${h.label} · ${h.period}</option>`).join("");
     sel.onchange=e=>{state.report=e.target.value;render();};
-    document.getElementById("pageTitle").innerHTML=`${pg.name}<small>${state.page==="concorrencia"?"Consulta "+(COMP.date||"—"):state.page==="mapa"?"Áreas de risco e desmanche · Google My Maps":r.label+" · "+r.period}</small>`;
-    if(state.page==="mapa")document.getElementById("selCtl").style.display="none";
+    document.getElementById("pageTitle").innerHTML=`${pg.name}<small>${state.page==="concorrencia"?"Consulta "+(COMP.date||"—"):state.page==="mapa"?"Áreas de risco e desmanche · Google My Maps":["motoristas","apps"].includes(state.page)?"Pesquisa de mercado"+(APPS.d?" · atualizada em "+APPS.d.updated:""):r.label+" · "+r.period}</small>`;
+    if(["mapa","motoristas","apps"].includes(state.page))document.getElementById("selCtl").style.display="none";
   }
   const db=document.getElementById("demoBar");
-  const BANNER={mapa:"Dados reais · áreas de risco e desmanche demarcadas no Google My Maps da Yalla · atualiza sozinho quando o mapa é editado",periodo:"Dados reais · escolha qualquer intervalo de datas desde 2024 · Meta, Google, ChatGPT e GA4 dia a dia via Supermetrics",concorrencia:`Dados reais · planilha de concorrência online (Google Sheets) · consulta de ${COMP.date||"—"} (não muda com o mês)`,criativos:"Aguardando dados · veja abaixo o que enviar",seo:"Dados reais · Google Analytics 4 (yallacar.com.br) via Supermetrics",fontes:"Status de cada fonte de dados do painel",usuarios:"Somente administradores · gerencie quem entra no painel e o que cada pessoa vê",comparar:"Compare quaisquer dois meses, dois intervalos de datas ou todos os meses lado a lado",diario:"Dados reais · gasto diário da Meta, Google e ChatGPT via Supermetrics · reservas do site pelo GA4",
+  const BANNER={motoristas:"Pesquisa de mercado · fontes públicas com link · revisada automaticamente toda segunda-feira",apps:"Pesquisa de mercado · regras e taxas de Uber e 99 · revisada automaticamente toda segunda-feira",mapa:"Dados reais · áreas de risco e desmanche demarcadas no Google My Maps da Yalla · atualiza sozinho quando o mapa é editado",periodo:"Dados reais · escolha qualquer intervalo de datas desde 2024 · Meta, Google, ChatGPT e GA4 dia a dia via Supermetrics",concorrencia:`Dados reais · planilha de concorrência online (Google Sheets) · consulta de ${COMP.date||"—"} (não muda com o mês)`,criativos:"Aguardando dados · veja abaixo o que enviar",seo:"Dados reais · Google Analytics 4 (yallacar.com.br) via Supermetrics",fontes:"Status de cada fonte de dados do painel",usuarios:"Somente administradores · gerencie quem entra no painel e o que cada pessoa vê",comparar:"Compare quaisquer dois meses, dois intervalos de datas ou todos os meses lado a lado",diario:"Dados reais · gasto diário da Meta, Google e ChatGPT via Supermetrics · reservas do site pelo GA4",
     metas:"Realizado = dados reais · metas e orçamento editáveis (salvos neste navegador)",receita:"Contratos reais · premissas de receita editáveis",analise:"Resumo automático com dados reais · notas editáveis por mês",importar:"Importe os arquivos do mês ou lance canais sem exportação"};
   db.textContent=BANNER[state.page]||"Dados reais · Meta Ads, Google Ads, ChatGPT Ads, Yalla Digital, Chat Yalla e influenciadores";
   if(REAL_PAGES.includes(state.page)&&state.page!=="periodo"&&state.mTo&&PARTIAL[state.mTo])db.textContent=`Mês parcial (${PARTIAL[state.mTo]}) · mídia e site atualizados via Supermetrics · reservas, contratos, Chat Yalla e influenciadores de ${state.mTo} ainda não enviados — Aguardando arquivos`;
   if(REAL.metaStale&&((state.page==="periodo")||(REAL_PAGES.includes(state.page)&&state.mTo==="Nov/26")))db.textContent+=` · ⚠ Meta Ads só até ${REAL.metaStale.until}: a conexão da Meta no Supermetrics precisa ser refeita`;
-  {const PG_SRC={periodo:["cmd"],geral:["cmd","manual"],alertas:["cmd","manual"],metas:["manual"],mensal:["cmd","manual"],diario:["cmd"],comparar:["cmd","manual"],meta:["cmd"],google:["cmd"],gpt:["cmd"],campanhas:["cmd"],influencers:["manual"],seo:["cmd"],reservas:["manual"],receita:["manual"],funil:["manual"],produtos:["manual"],concorrencia:["auto"],mapa:["auto"],analise:["cmd","manual"],historico:["cmd","manual"]}[state.page];
+  {const PG_SRC={periodo:["cmd"],geral:["cmd","manual"],alertas:["cmd","manual"],metas:["manual"],mensal:["cmd","manual"],diario:["cmd"],comparar:["cmd","manual"],meta:["cmd"],google:["cmd"],gpt:["cmd"],campanhas:["cmd"],influencers:["manual"],seo:["cmd"],reservas:["manual"],receita:["manual"],funil:["manual"],produtos:["manual"],concorrencia:["auto"],mapa:["auto"],motoristas:["auto"],apps:["auto"],analise:["cmd","manual"],historico:["cmd","manual"]}[state.page];
    let sb=document.getElementById("srcBadges");if(!sb){sb=document.createElement("span");sb.id="srcBadges";sb.style.cssText="display:inline-flex;gap:6px;margin-left:10px;vertical-align:middle";db.after(sb);}
    sb.innerHTML=PG_SRC?PG_SRC.map(srcTag).join("")+`<a href="#fontes" style="color:var(--y);font-size:11px;margin-left:4px">fontes</a>`:"";}
   const waiting=/Aguardando/.test(db.textContent);db.style.background=waiting?"":"var(--green-soft)";db.style.color=waiting?"":"var(--green)";
@@ -3446,6 +3539,7 @@ document.querySelectorAll("#themeSw button").forEach(b=>b.onclick=()=>{setTheme(
 setTheme(document.documentElement.dataset.theme||"navy");
 try{if(localStorage.getItem("yalla-explain")==="1"){document.body.classList.add("explain");}}catch(e){}
 
+Object.assign(P,APPS_PAGES);
 /* ---------- lembrar onde parou (mês, período, aba, rolagem) ---------- */
 const VIEW_KEY="yalla_view_v1",VIEW_SKIP=new Set(["alerts","page"]);
 (function(){try{const v=JSON.parse(localStorage.getItem(VIEW_KEY)||"null");if(!v)return;
