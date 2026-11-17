@@ -12,7 +12,7 @@ module.exports = async (req, res) => {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   const errs = [];
   for (const [name, url] of sources) {
-    const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 6000);
+    const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 3500);
     try {
       const rr = await fetch(url, { signal: ctl.signal, headers: { "User-Agent": "painel-relatorios/1.0", "Accept": "application/json" } });
       clearTimeout(tm);
