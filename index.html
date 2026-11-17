@@ -117,6 +117,12 @@ body.side-min .nav a .cnt{position:absolute;top:2px;right:4px;font-size:9px;padd
 .mp-wrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;align-items:stretch}
 .mp-map{position:relative;padding:0;overflow:hidden;height:calc(100vh - 250px);min-height:520px}
 #mapaHost{position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,#12223f,#0a1020)}
+.mp-vgrp{display:inline-flex;align-items:center;gap:3px;padding:2px;border:1px solid var(--line2);border-radius:10px;background:rgba(13,18,32,.35)}
+.mp-vgrp .btn{height:28px;padding:0 10px;font-size:11.5px;border-color:transparent;background:transparent;color:var(--muted)}
+.mp-vgrp .btn.on{background:var(--navy2);border-color:var(--y);color:var(--y)}
+.mp-vgrp .btn:disabled{opacity:.45;cursor:not-allowed}
+.mp-vgrp .btn:focus-visible{outline:2px solid var(--y);outline-offset:1px}
+.mp-vsep{width:1px;height:18px;background:var(--line2);margin:0 2px}
 .mp-ov{position:absolute;left:12px;top:12px;z-index:2;display:flex;gap:8px;flex-wrap:wrap;pointer-events:none}
 .mp-ov span{background:rgba(13,18,32,.82);border:1px solid var(--line2);border-radius:8px;padding:6px 10px;font:600 11.5px Montserrat;color:var(--txt);backdrop-filter:blur(6px)}
 .mp-ov i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:-1px}
@@ -904,7 +910,12 @@ window.addEventListener("hashchange",()=>{if(document.body.classList.contains("m
 function mapaPts(){MAPA.showPts=!MAPA.showPts;const m=MAPA.map;if(m&&MAPA.ready)["pts","pts-lbl"].forEach(id=>m.getLayer(id)&&m.setLayoutProperty(id,"visibility",MAPA.showPts?"visible":"none"));mapaBtns();}
 function mapaBtns(){const e=document.getElementById("mapaBtns");if(e)e.innerHTML=mapaBtnsHTML();}
 function mapaBtnsHTML(){const b=(l,fn,on,t)=>`<button class="btn" title="${t||""}" aria-pressed="${on?"true":"false"}" style="height:34px;font-size:12px;${on?"border-color:var(--y);color:var(--y)":""}" onclick="${fn}">${l}</button>`,full=document.body.classList.contains("mp-full");
-  return b(MAPA.spin?SI("pause",12)+" Pausar giro":SI("play",12)+" Girar","mapaSpin()",MAPA.spin,"O mapa gira sozinho quando você não está mexendo")+b(MAPA.tour?SI("stop",12)+" Parar tour":SI("tour",13)+" Tour pelas áreas","mapaTour()",MAPA.tour,"Passa por todas as áreas de risco; com a Cidade 3D ligada, desce até a rua em cada uma")+b("Brasil","mapaView('br')")+b("Todas as áreas","mapaView('all')")+b(SI("city",13)+" Cidade 3D","mapaCity()",MAPA.city,"Desce até a rua com os prédios em 3D. Ligue junto com o Tour pelas áreas para passear por elas em 3D")+b(full?SI("x",13)+" Sair da tela cheia":SI("full",13)+" Tela cheia","mapaFull()",full,"Abre o mapa ocupando a tela toda (Esc para sair)")+b(SI("layers",13)+" Camadas","event.stopPropagation();mapaLayToggle()",MAPA.layOpen,"Escolha o que aparece no mapa")+(MAPA.layOpen?mapaLayersHTML():"");}
+  return b(MAPA.spin?SI("pause",12)+" Pausar giro":SI("play",12)+" Girar","mapaSpin()",MAPA.spin,"O mapa gira sozinho quando você não está mexendo")+b(MAPA.tour?SI("stop",12)+" Parar tour":SI("tour",13)+" Tour pelas áreas","mapaTour()",MAPA.tour,"Passa por todas as áreas de risco; com a Cidade 3D ligada, desce até a rua em cada uma")+b("Brasil","mapaView('br')")+b("Todas as áreas","mapaView('all')")+b(SI("city",13)+" Cidade 3D","mapaCity()",MAPA.city,"Desce até a rua com os prédios em 3D. Ligue junto com o Tour pelas áreas para passear por elas em 3D")+vehBtnsHTML()+b(full?SI("x",13)+" Sair da tela cheia":SI("full",13)+" Tela cheia","mapaFull()",full,"Abre o mapa ocupando a tela toda (Esc para sair)")+b(SI("layers",13)+" Camadas","event.stopPropagation();mapaLayToggle()",MAPA.layOpen,"Escolha o que aparece no mapa")+(MAPA.layOpen?mapaLayersHTML():"");}
+function vehBtnsHTML(){if(REDUCED)return"";const p=MAPA.showPlanes!==false,c=MAPA.showVeh!==false,err=V3.st==="err",d3=MAPA.v3!==false&&!err;
+  const t=(l,fn,on,ti,dis)=>`<button type="button" class="btn${on?" on":""}" aria-pressed="${on?"true":"false"}" title="${ti}"${dis?" disabled":""} onclick="${fn}">${l}</button>`;
+  return`<div class="mp-vgrp" role="group" aria-label="Aviões e carros no mapa">`+t(SI("plane",12)+" Aviões","mapaPlanes()",p,p?"Aviões aparecendo no mapa. Toque para tirar":"Aviões fora do mapa. Toque para mostrar")+t(SI("car",13)+" Carros","mapaVeh()",c,c?"Carros aparecendo no mapa. Toque para tirar":"Carros fora do mapa. Toque para mostrar")
+    +`<span class="mp-vsep" aria-hidden="true"></span>`+t(SI("cube",13)+" 3D","vehModo(true)",d3,err?"3D indisponível neste navegador":"Aviões e carros em modelos 3D",err)+t(SI("square",12)+" 2D","vehModo(false)",!d3,"Aviões e carros como ícones planos")+`</div>`;}
+function vehModo(on){if(on===(MAPA.v3!==false&&V3.st!=="err"))return;if(on&&V3.st==="err")return;mapaV3();}
 function mapaType(v){MAPA.q=v;clearTimeout(mapaQT);mapaList();const q=v.trim();if(q.length<3){MAPA.sug=[];mapaSug();return;}mapaQT=setTimeout(()=>mapaGeocode(q),450);}
 async function mapaGeocode(q,go){const n=++mapaQN;MAPA.sugLoad=true;mapaSug();
   try{const r=await fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=br&limit=6&addressdetails=1&accept-language=pt-BR&q="+encodeURIComponent(q)),j=await r.json();if(n!==mapaQN)return;
@@ -3863,7 +3874,7 @@ function sspHTML(){const d=SSPR.d;
   ${A.slice(0,12).map(a=>`<button class="mp-li" style="display:block;width:100%;text-align:left;border-left:3px solid #27c4f5" onclick="sspFocus(${a.i})"><b>${a.rank}. ${mapaEsc(sspNome(a))}</b><small style="display:block;color:var(--muted);line-height:1.45">${f(a.media)} por mês · ${f(a.dens)} por km²${a.yalla&&a.yalla.length?"":' · <span style="color:#27c4f5">sem área Yalla</span>'}</small></button>`).join("")}
   <p class="mp-sn" style="padding:8px 8px 0;line-height:1.5">Fonte diferente das suas áreas: estatística oficial da SSP-SP de roubo e furto de veículos por delegacia da capital (jan a ${sspMes(d.ate)}/${d.ano}), com o contorno das delegacias do GeoSampa. Atualiza sozinho quando a SSP publica um mês novo. É o registro de ocorrências da delegacia inteira, não uma área demarcada pela Yalla.</p>`;}
 /* ================= v5: camadas, clima, trânsito, aeroportos, concorrentes no Brasil, rotas, 3D ================= */
-Object.assign(SI_P,{
+Object.assign(SI_P,{cube:'<path d="M12 2.8 20.5 7.5v9L12 21.2 3.5 16.5v-9z"/><path d="M3.5 7.5 12 12.2l8.5-4.7M12 12.2v9"/>',square:'<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M4 12h16"/>',
  check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',ext:'<path d="M14 5h5v5M19 5l-8 8M18 14v4a1 1 0 01-1 1H6a1 1 0 01-1-1V7a1 1 0 011-1h4"/>',
  bell:'<path d="M6 16v-5a6 6 0 0112 0v5l1.5 2h-15zM10 20a2 2 0 004 0"/>',layers:'<path d="M12 4l9 5-9 5-9-5zM3 14l9 5 9-5"/>',
  up:'<path d="M12 19V5M6 11l6-6 6 6"/>',down:'<path d="M12 5v14M6 13l6 6 6-6"/>',flat:'<path d="M5 12h14M14 7l5 5-5 5"/>',
