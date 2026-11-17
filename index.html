@@ -123,6 +123,7 @@ body.side-min .nav a .cnt{position:absolute;top:2px;right:4px;font-size:9px;padd
 .mp-vgrp .btn:disabled{opacity:.45;cursor:not-allowed}
 .mp-vgrp .btn:focus-visible{outline:2px solid var(--y);outline-offset:1px}
 .mp-vsep{width:1px;height:18px;background:var(--line2);margin:0 2px}
+.mp-vlab{display:inline-flex;align-items:center;gap:5px;padding:0 6px 0 8px;font:600 11.5px Montserrat,sans-serif;color:var(--muted)}
 .mp-ov{position:absolute;left:12px;top:12px;z-index:2;display:flex;gap:8px;flex-wrap:wrap;pointer-events:none}
 .mp-ov span{background:rgba(13,18,32,.82);border:1px solid var(--line2);border-radius:8px;padding:6px 10px;font:600 11.5px Montserrat;color:var(--txt);backdrop-filter:blur(6px)}
 .mp-ov i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:-1px}
@@ -149,7 +150,7 @@ body.side-min .nav a .cnt{position:absolute;top:2px;right:4px;font-size:9px;padd
 #mapaHit a{color:var(--y);font-weight:600;text-decoration:none}
 @media (max-width:1000px){.mp-wrap{grid-template-columns:1fr}.mp-side{height:320px;min-height:0}.mp-map{height:70vh}}
 .ap-t table{table-layout:auto;width:100%}.ap-t td,.ap-t th{white-space:normal!important;vertical-align:top;min-width:90px}
-.ps-wrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px}
+.ps-wrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px}@media (max-width:1240px){.ps-wrap{grid-template-columns:1fr}}
 .ps-stage{position:relative;height:min(74vh,720px);min-height:560px;background:radial-gradient(circle at 50% 50%,#16233f 0%,#0d1220 70%);overflow:hidden}
 .ps-orbit{position:absolute;left:50%;top:50%;border:1px dashed rgba(255,255,255,.09);border-radius:50%;transform:translate(-50%,-50%);animation:psSpin 90s linear infinite}
 .ps-orbit.o1{width:54%;height:60%}.ps-orbit.o2{width:78%;height:82%;animation-duration:140s;animation-direction:reverse}.ps-orbit.o3{width:94%;height:94%;animation-duration:200s}
@@ -893,10 +894,34 @@ function mapaView(k){const m=MAPA.map;if(!m||!MAPA.ready)return;if(MAPA.city){MA
   if(k==="br")m.flyTo({...MAPA_BR,pitch:REDUCED?0:38,duration:REDUCED?0:2400,essential:true});
   else{const A=MAPA.data?.areas||[];if(!A.length)return;const bb=A.reduce((b,a)=>[[Math.min(b[0][0],a.bb[0][0]),Math.min(b[0][1],a.bb[0][1])],[Math.max(b[1][0],a.bb[1][0]),Math.max(b[1][1],a.bb[1][1])]],[[180,90],[-180,-90]]);m.fitBounds(bb,{padding:60,pitch:REDUCED?0:45,duration:REDUCED?0:2600,essential:true});}}
 function mapaSpin(){MAPA.spin=!MAPA.spin;MAPA.lastTouch=0;mapaBtns();}
-function mapaTour(on){MAPA.tour=on==null?!MAPA.tour:on;clearTimeout(MAPA.tourT);
-  if(MAPA.tour){const next=()=>{if(!MAPA.tour||state.page!=="mapa")return;const A=MAPA.data?.areas||[];if(!A.length)return;const a=A[MAPA.ti%A.length];MAPA.ti++;mapaFocus(a.i);MAPA.tourT=setTimeout(next,MAPA.city&&!REDUCED?10500:6500);};next();}
+/* tour: zonas de risco, concorrência ou todos os pontos */
+const TOUR_MODES={risco:["Zonas de risco","Passa por todas as áreas de risco da Yalla"],conc:["Concorrência","Passa pelos concorrentes em SP, do mais perto da Yalla ao mais longe"],todos:["Todos os pontos","Yalla, concorrentes, áreas de risco e pontos marcados, em uma rota"]};
+try{const t=localStorage.getItem("yalla_tour_v1");if(TOUR_MODES[t])MAPA.tourMode=t;}catch(e){}
+function mapaTourStops(md){const out=[],A=MAPA.data?.areas||[],L=MAPA.loc||[],Pt=MAPA.data?.points||[];
+  if(md!=="conc")A.forEach(a=>out.push({k:"a",i:a.i,c:a.c}));
+  if(md!=="risco")L.forEach((p,i)=>{if(md==="todos"||p.kind!=="yalla")out.push({k:"l",i,c:[p.lng,p.lat],y:p.kind==="yalla"});});
+  if(md==="todos")Pt.forEach((p,i)=>{if(isFinite(p.lng)&&isFinite(p.lat))out.push({k:"p",i,c:[p.lng,p.lat]});});
+  if(md==="risco")return out;
+  const Y=L.find(p=>p.kind==="yalla"),d=(a,b)=>Math.hypot((a[0]-b[0])*Math.cos(a[1]*Math.PI/180),a[1]-b[1]),r=[];let cur=Y?[Y.lng,Y.lat]:[-46.6566,-23.5613];
+  while(out.length){let bi=0,bd=1e9;out.forEach((s,j)=>{const v=s.y?-1:d(cur,s.c);if(v<bd){bd=v;bi=j;}});const s=out.splice(bi,1)[0];r.push(s);cur=s.c;}
+  return r;}
+function mapaPtFocus(i,fromTour){const p=(MAPA.data?.points||[])[i],m=MAPA.map;if(!p||!m||!MAPA.ready)return;if(MAPA.tour&&!fromTour)mapaTour(false);MAPA.lastTouch=Date.now()-2500;mapaSelect(null);
+  m.flyTo({center:[p.lng,p.lat],zoom:MAPA.city&&!REDUCED?16.2:15,pitch:REDUCED?0:(MAPA.city?70:55),bearing:m.getBearing(),duration:REDUCED?0:2600,essential:true});
+  mapaPopup([p.lng,p.lat],`<b>${mapaEsc(p.name)}</b><div class="mp-s">${p.kind==="oficina"?"Oficina parceira":"Ponto marcado"}${p.desc?" · "+mapaEsc(p.desc):""}</div>${mapaGLink([p.lng,p.lat])}`);}
+function mapaTour(on,md){if(md&&TOUR_MODES[md]){if(md!==MAPA.tourMode)MAPA.ti=0;MAPA.tourMode=md;try{localStorage.setItem("yalla_tour_v1",md);}catch(e){}}
+  MAPA.tour=on==null?!MAPA.tour:on;clearTimeout(MAPA.tourT);
+  if(MAPA.tour){const mode=MAPA.tourMode||"risco",ens=k=>{const L=LAYERS.find(x=>x.k===k);if(L&&!layOn(L))mapaLayer(k);};
+    if(mode!=="conc")ens("showRisk");if(mode!=="risco")ens("showLoc");if(mode==="todos"){ens("showYalla");if((MAPA.data?.points||[]).length)ens("showPts");}
+    MAPA.tourS=mapaTourStops(mode);
+    const next=()=>{if(!MAPA.tour||state.page!=="mapa")return;const S=MAPA.tourS||[];if(!S.length){mapaTour(false);return;}const n=MAPA.ti%S.length,s=S[n];MAPA.tourN=n+1;MAPA.ti++;
+      if(s.k==="a")mapaFocus(s.i);else if(s.k==="l")mapaLocFocus(s.i,false,true);else mapaPtFocus(s.i,true);mapaBtns();
+      MAPA.tourT=setTimeout(next,MAPA.city&&!REDUCED?10500:(s.k==="a"?6500:7500));};next();}
   mapaBtns();}
-function mapaLocFocus(i,keep){const p=(MAPA.loc||[])[i],m=MAPA.map;if(!p||!m||!MAPA.ready)return;if(MAPA.tour)mapaTour(false);MAPA.lastTouch=Date.now()-2500;mapaSelect(null);
+function mapaTourGo(k){if(MAPA.tour&&(MAPA.tourMode||"risco")===k)mapaTour(false);else mapaTour(true,k);}
+function tourBtnsHTML(){const md=MAPA.tourMode||"risco",on=MAPA.tour,n=(MAPA.tourS||[]).length;
+  const t=k=>{const act=on&&md===k,[l,ti]=TOUR_MODES[k];return`<button type="button" class="btn${act?" on":""}" aria-pressed="${act?"true":"false"}" title="${act?"Parar o tour":ti}" onclick="mapaTourGo('${k}')">${act?SI("stop",12)+" "+l+(n?` <span style="opacity:.75;font-variant-numeric:tabular-nums">${MAPA.tourN||1}/${n}</span>`:""):l}</button>`;};
+  return`<div class="mp-vgrp" role="group" aria-label="Tour pelo mapa: escolha o que visitar"><span class="mp-vlab">${SI("tour",13)} Tour</span>`+t("risco")+t("conc")+t("todos")+`</div>`;}
+function mapaLocFocus(i,keep,fromTour){const p=(MAPA.loc||[])[i],m=MAPA.map;if(!p||!m||!MAPA.ready)return;if(MAPA.tour&&!fromTour)mapaTour(false);MAPA.lastTouch=Date.now()-2500;mapaSelect(null);
   if(!keep||m.getZoom()<13)m.flyTo({center:[p.lng,p.lat],zoom:16.2,pitch:REDUCED?0:70,bearing:m.getBearing(),duration:REDUCED?0:2600,essential:true});
   const L=mapaLocate([p.lng,p.lat]),km=L.km,kt=km<1?Math.round(km*1000)+" m":km.toFixed(1).replace(".",",")+" km";
   mapaPopup([p.lng,p.lat],`<span class="mp-tag" style="color:${p.kind==="yalla"?"var(--y)":"#B07CFF"}">${p.kind==="yalla"?"Unidade Yalla":"Concorrente"}</span><b>${mapaEsc(p.name)}</b><div class="mp-s">${mapaEsc(p.addr||"")}${p.approx?"<br>Posição aproximada (nível da rua)":p.prec?`<br><span style="color:var(--green)">Posição exata</span>: ${({lote:"lote fiscal da Prefeitura de SP com o mesmo número",numero:"número da rua no OpenStreetMap",predio:"prédio do Carrefour onde fica a loja (OpenStreetMap)"})[p.prec]||""}`:""}${L.near?`<br>${L.inside?"Dentro da área de risco "+mapaEsc(L.inside.name):"Área de risco mais próxima: "+mapaEsc(L.near.name)+", a "+kt}`:""}</div>${mapaGLink([p.lng,p.lat])}`);}
@@ -911,7 +936,7 @@ window.addEventListener("hashchange",()=>{if(document.body.classList.contains("m
 function mapaPts(){MAPA.showPts=!MAPA.showPts;const m=MAPA.map;if(m&&MAPA.ready)["pts","pts-lbl"].forEach(id=>m.getLayer(id)&&m.setLayoutProperty(id,"visibility",MAPA.showPts?"visible":"none"));mapaBtns();}
 function mapaBtns(){const e=document.getElementById("mapaBtns");if(e)e.innerHTML=mapaBtnsHTML();}
 function mapaBtnsHTML(){const b=(l,fn,on,t)=>`<button class="btn" title="${t||""}" aria-pressed="${on?"true":"false"}" style="height:34px;font-size:12px;${on?"border-color:var(--y);color:var(--y)":""}" onclick="${fn}">${l}</button>`,full=document.body.classList.contains("mp-full");
-  return b(MAPA.spin?SI("pause",12)+" Pausar giro":SI("play",12)+" Girar","mapaSpin()",MAPA.spin,"O mapa gira sozinho quando você não está mexendo")+b(MAPA.tour?SI("stop",12)+" Parar tour":SI("tour",13)+" Tour pelas áreas","mapaTour()",MAPA.tour,"Passa por todas as áreas de risco; com a Cidade 3D ligada, desce até a rua em cada uma")+b("Brasil","mapaView('br')")+b("Todas as áreas","mapaView('all')")+b(SI("city",13)+" Cidade 3D","mapaCity()",MAPA.city,"Desce até a rua com os prédios em 3D. Ligue junto com o Tour pelas áreas para passear por elas em 3D")+vehBtnsHTML()+b(full?SI("x",13)+" Sair da tela cheia":SI("full",13)+" Tela cheia","mapaFull()",full,"Abre o mapa ocupando a tela toda (Esc para sair)")+b(SI("layers",13)+" Camadas","event.stopPropagation();mapaLayToggle()",MAPA.layOpen,"Escolha o que aparece no mapa")+(MAPA.layOpen?mapaLayersHTML():"");}
+  return b(MAPA.spin?SI("pause",12)+" Pausar giro":SI("play",12)+" Girar","mapaSpin()",MAPA.spin,"O mapa gira sozinho quando você não está mexendo")+tourBtnsHTML()+b("Brasil","mapaView('br')")+b("Todas as áreas","mapaView('all')")+b(SI("city",13)+" Cidade 3D","mapaCity()",MAPA.city,"Desce até a rua com os prédios em 3D. Ligue junto com o Tour para passear pelos pontos em 3D")+vehBtnsHTML()+b(full?SI("x",13)+" Sair da tela cheia":SI("full",13)+" Tela cheia","mapaFull()",full,"Abre o mapa ocupando a tela toda (Esc para sair)")+b(SI("layers",13)+" Camadas","event.stopPropagation();mapaLayToggle()",MAPA.layOpen,"Escolha o que aparece no mapa")+(MAPA.layOpen?mapaLayersHTML():"");}
 function vehBtnsHTML(){if(REDUCED)return"";const p=MAPA.showPlanes!==false,c=MAPA.showVeh!==false,err=V3.st==="err",d3=MAPA.v3!==false&&!err;
   const t=(l,fn,on,ti,dis)=>`<button type="button" class="btn${on?" on":""}" aria-pressed="${on?"true":"false"}" title="${ti}"${dis?" disabled":""} onclick="${fn}">${l}</button>`;
   return`<div class="mp-vgrp" role="group" aria-label="Aviões e carros no mapa">`+t(SI("plane",12)+" Aviões","mapaPlanes()",p,p?"Aviões aparecendo no mapa. Toque para tirar":"Aviões fora do mapa. Toque para mostrar")+t(SI("car",13)+" Carros","mapaVeh()",c,c?"Carros aparecendo no mapa. Toque para tirar":"Carros fora do mapa. Toque para mostrar")
@@ -1092,10 +1117,10 @@ function persLayout(){ /* posições em % do palco, por anéis */
       a.x=Math.max(-49+a.w,Math.min(49-a.w,a.x));a.y=Math.max(-47+a.h,Math.min(47-a.h,a.y));}}
   return out;
 }
-function persAvatar(){return`<svg viewBox="0 0 200 200" width="100%" height="100%" aria-hidden="true">
-  <defs><radialGradient id="pg" cx="50%" cy="40%" r="60%"><stop offset="0" stop-color="#F2A314" stop-opacity=".28"/><stop offset="1" stop-color="#F2A314" stop-opacity="0"/></radialGradient></defs>
-  <circle cx="100" cy="100" r="98" fill="url(#pg)"/><circle cx="100" cy="100" r="74" fill="#18223a" stroke="#F2A314" stroke-width="2"/>
-  <circle cx="100" cy="78" r="22" fill="#F2A314"/><path d="M58 150c4-30 22-42 42-42s38 12 42 42" fill="#F2A314"/>
+function persAvatar(c){c=c||"#F2A314";return`<svg viewBox="0 0 200 200" width="100%" height="100%" aria-hidden="true">
+  <defs><radialGradient id="pg" cx="50%" cy="40%" r="60%"><stop offset="0" stop-color="${c}" stop-opacity=".28"/><stop offset="1" stop-color="${c}" stop-opacity="0"/></radialGradient></defs>
+  <circle cx="100" cy="100" r="98" fill="url(#pg)"/><circle cx="100" cy="100" r="74" fill="#18223a" stroke="${c}" stroke-width="2"/>
+  <circle cx="100" cy="78" r="22" fill="${c}"/><path d="M58 150c4-30 22-42 42-42s38 12 42 42" fill="${c}"/>
   <circle cx="100" cy="150" r="20" fill="none" stroke="#0D1220" stroke-width="5"/><path d="M100 130v40M80 150h40" stroke="#0D1220" stroke-width="4"/>
   <rect x="134" y="92" width="18" height="30" rx="4" fill="#0D1220" stroke="#EEF1F7" stroke-width="2"/><circle cx="143" cy="116" r="1.6" fill="#EEF1F7"/></svg>`;}
 function persStage(){const S=persState(),L=persLayout();
@@ -4382,7 +4407,125 @@ function onlDraw(){const c=document.getElementById("onlCard");if(c)c.innerHTML=o
   p.innerHTML=`<i style="width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px var(--green-soft)"></i>${n||1} online`;}
 /* ---------- persona: montar manualmente + automático ---------- */
 let PERS=PERS_BASE.slice();
-const PERS_ST={custom:null,at:null,mine:false,team:null,dirty:false,msg:""};
+/* ---------- personas por produto: Trust, Rent, Dream e categoria Black ---------- */
+const PERS_RENT=[
+ {c:"quem",t:"Não é motorista de app",w:3,k:"h",x:"Aluga por poucos dias para uso próprio. Quem roda em app é Trust."},
+ {c:"quem",t:"Casal ou família",w:3,k:"h",x:"Viaja com mais gente e bagagem: carro dá liberdade que ônibus e app não dão."},
+ {c:"quem",t:"30 a 50 anos",w:2,k:"h",x:"Faixa que mais viaja de carro com a família; confirmar com as reservas Rent."},
+ {c:"quem",t:"Mora em SP e Grande SP",w:2,k:"h",x:"Sai da capital para o litoral e o interior; loja perto de casa pesa na escolha."},
+ {c:"quem",t:"Sem carro ou carro que não aguenta a estrada",w:2,k:"h",x:"Não tem carro, ou o dele é pequeno ou velho para viagem."},
+ {c:"rotina",t:"Viaja em feriado e férias",w:3,k:"h",x:"Pico de procura em feriados prolongados e nas férias de julho e de verão."},
+ {c:"rotina",t:"Lazer usa 32% da frota alugada",w:2,k:"d",x:"Segundo o Anuário da ABLA, o turismo de lazer responde por 32% da frota das locadoras; somado ao de negócios, 48%.",f:"ABLA, Anuário (Mercado & Eventos)"},
+ {c:"rotina",t:"Aluga de 2 a 7 dias",w:2,k:"h",x:"Fim de semana prolongado ou uma semana de férias."},
+ {c:"rotina",t:"Planeja poucas semanas antes",w:2,k:"h",x:"Decide perto da data; campanha precisa estar no ar antes de cada feriado."},
+ {c:"rotina",t:"Pesquisa pelo celular",w:2,k:"h",x:"Compara preço total em comparadores e no Google antes de chamar."},
+ {c:"dor",t:"Diária cara na alta temporada",w:3,k:"d",x:"A ABLA aponta o valor da diária como o principal freio da locação para viagens.",f:"ABLA (Panrotas, 2024)"},
+ {c:"dor",t:"Pedem cartão de crédito com limite",w:3,k:"h",x:"Locadora grande bloqueia caução no cartão; quem não tem limite fica de fora."},
+ {c:"dor",t:"Taxa escondida no fim",w:2,k:"h",x:"Proteção, km, limpeza e devolução em outra loja aumentam a conta."},
+ {c:"busca",t:"Preço total claro",w:3,k:"h",x:"Quer ver quanto paga no total, com proteção e km, sem surpresa."},
+ {c:"busca",t:"Carro confortável para estrada",w:3,k:"h",x:"Sedã ou SUV com porta-malas e ar; automático é um plus."},
+ {c:"busca",t:"Km livre",w:2,k:"h",x:"Viagem longa não combina com franquia baixa de km."},
+ {c:"busca",t:"Retirada perto de casa",w:2,k:"h",x:"Retirar e devolver sem ir ao aeroporto."},
+ {c:"onde",t:"Google: aluguel de carro",w:3,k:"h",x:"Busca com data marcada; anúncio de pesquisa pega quem já decidiu viajar."},
+ {c:"onde",t:"Comparadores de aluguel",w:2,k:"h",x:"Rentcars, Kayak e similares; preço precisa estar competitivo lá."},
+ {c:"onde",t:"Instagram perto do feriado",w:1,k:"h",x:"Lembrete de viagem e promoção de feriado."},
+ {c:"gatilho",t:"Sem cartão de crédito",w:3,k:"h",x:"Pagar a caução de outra forma abre a porta para quem as grandes recusam. Confirmar a regra com o comercial."},
+ {c:"gatilho",t:"Promoção de feriado",w:2,k:"h",x:"Pacote de 3 ou 4 diárias com preço fechado."},
+ {c:"gatilho",t:"Resposta rápida no WhatsApp",w:2,k:"h",x:"Quem responde primeiro com o preço total leva a reserva."},
+ {c:"trava",t:"Valor da caução",w:2,k:"h",x:"Mesmo sem cartão, uma caução alta para poucos dias desanima."},
+ {c:"trava",t:"Pouco tempo de CNH",w:1,k:"h",x:"Regra de tempo mínimo de habilitação barra parte dos pedidos."},
+ {c:"trava",t:"Só cotando preço",w:1,k:"h",x:"Pede orçamento sem data: entra no follow-up do feriado seguinte."}
+];
+const PERS_DREAM=[
+ {c:"quem",t:"Motorista de app experiente",w:3,k:"h",x:"Já roda há um ano ou mais e conhece a conta do aluguel."},
+ {c:"quem",t:"Quer ter o carro dele",w:3,k:"h",x:"Cansou de pagar aluguel sem ficar com nada no fim."},
+ {c:"quem",t:"Crédito negado no banco",w:3,k:"h",x:"Renda informal ou nome com restrição: não consegue financiar."},
+ {c:"quem",t:"35 a 50 anos, com família",w:2,k:"h",x:"Pensa em patrimônio e segurança para a casa."},
+ {c:"rotina",t:"Paga em dia",w:3,k:"h",x:"Contrato longo depende de bom histórico: o score Yalla+ ajuda a achar esse perfil."},
+ {c:"rotina",t:"Roda todos os dias",w:2,k:"h",x:"Renda constante para sustentar um compromisso de meses."},
+ {c:"rotina",t:"Pensa no longo prazo",w:2,k:"h",x:"Aceita um prazo maior se no fim o carro for dele."},
+ {c:"dor",t:"Aluguel que nunca acaba",w:3,k:"h",x:"Sente que trabalha para pagar o carro do outro."},
+ {c:"dor",t:"Sem dinheiro para a entrada",w:3,k:"h",x:"Até no seminovo a entrada do financiamento trava."},
+ {c:"dor",t:"Juros altos",w:2,k:"h",x:"Financiamento caro para quem tem renda variável."},
+ {c:"busca",t:"Parcela que vira o carro",w:3,k:"h",x:"Quer saber quanto do que paga conta para a compra."},
+ {c:"busca",t:"Regra de compra clara",w:3,k:"h",x:"Prazo, valor final e o que acontece se atrasar uma semana."},
+ {c:"busca",t:"Seguro e manutenção inclusos",w:2,k:"h",x:"Previsibilidade até o carro ser dele."},
+ {c:"busca",t:"Carro que dura",w:2,k:"h",x:"Modelo econômico e aceito nos apps por mais anos."},
+ {c:"onde",t:"Já é cliente Trust",w:3,k:"h",x:"O melhor lead Dream costuma ser o cliente Trust bom pagador: oferecer na renovação."},
+ {c:"onde",t:"Grupos de motoristas",w:2,k:"h",x:"Indicação e prova de quem já ficou com o carro."},
+ {c:"onde",t:"Instagram e Facebook",w:2,k:"h",x:"Formulário com simulação simples."},
+ {c:"gatilho",t:"Simulação do caminho até o carro",w:3,k:"h",x:"Mostrar semana a semana quanto falta para ser dono."},
+ {c:"gatilho",t:"Histórico Trust conta",w:2,k:"h",x:"Tempo de casa e bom pagamento como vantagem na entrada do Dream."},
+ {c:"trava",t:"Concorrência já oferece",w:2,k:"d",x:"A Kovi anuncia planos de aluguel anual e com opção de compra para motoristas parceiros da Uber.",f:"Uber Match (oferta Kovi)"},
+ {c:"trava",t:"Medo de perder o que pagou",w:3,k:"h",x:"Se parar de pagar, o que acontece com o valor acumulado?"},
+ {c:"trava",t:"Prazo longo assusta",w:2,k:"h",x:"Compromisso de muitos meses com renda que varia."}
+];
+const PERS_BLACK=[
+ {c:"quem",t:"Avaliação 4,85 ou mais",w:3,k:"d",x:"Para o Uber Black o motorista precisa manter avaliação mínima de 4,85.",f:"Uber, regras 2026 (Times Brasil)"},
+ {c:"quem",t:"100+ viagens antes do Black",w:2,k:"d",x:"A Uber exige mais de 100 viagens concluídas em outras categorias.",f:"Uber, regras 2026 (Times Brasil)"},
+ {c:"quem",t:"Trata o carro como empresa",w:3,k:"h",x:"Calcula ganho por hora e cuida da imagem: carro limpo, roupa, água."},
+ {c:"quem",t:"Vem do X ou do Comfort",w:2,k:"h",x:"Sobe de categoria para ganhar mais por corrida."},
+ {c:"rotina",t:"Aeroporto e corporativo",w:3,k:"h",x:"Congonhas, Guarulhos e região da Paulista, Faria Lima e Berrini."},
+ {c:"rotina",t:"Corridas mais longas",w:2,k:"h",x:"Menos corridas por dia, com valor maior por viagem."},
+ {c:"rotina",t:"Vigia a nota todo dia",w:2,k:"h",x:"Cair abaixo do mínimo tira ele da categoria."},
+ {c:"dor",t:"Carro premium caro",w:3,k:"h",x:"Comprar um sedã ou SUV aceito no Black exige capital que ele não tem."},
+ {c:"dor",t:"Ano mínimo sobe",w:3,k:"d",x:"Em São Paulo, em 2026, a Uber exige Virtus 2026; Duster, Nivus e City 2023; demais modelos 2019. Novas regras já foram anunciadas para janeiro de 2027.",f:"Uber 2026 (Diário do Nordeste, Canal VE)"},
+ {c:"dor",t:"Modelo sai da lista",w:2,k:"d",x:"Kardian, Basalt e Tiggo 3X deixaram de ser aceitos no Black em janeiro de 2026.",f:"Uber 2026 (Diário do Nordeste)"},
+ {c:"busca",t:"Carro aceito no Black em SP",w:3,k:"h",x:"Garantia de que o modelo e o ano estão na lista da Uber para São Paulo."},
+ {c:"busca",t:"Cor e padrão exigidos",w:2,k:"d",x:"Ar, quatro portas e cor preto, chumbo, prata, cinza, azul-marinho, marrom ou branco.",f:"Uber 2026 (Olhar Digital)"},
+ {c:"busca",t:"Reserva da mesma categoria",w:2,k:"h",x:"Carro reserva comum tira ele do Black por dias."},
+ {c:"busca",t:"Híbrido que economiza",w:2,k:"h",x:"Consumo baixo em corrida longa aumenta a sobra."},
+ {c:"onde",t:"Cliente Trust que sobe",w:3,k:"h",x:"Upgrade de categoria por bom histórico é o caminho mais seguro."},
+ {c:"onde",t:"Grupos de motoristas Black",w:2,k:"h",x:"Comunidade menor e muito exigente: indicação pesa."},
+ {c:"gatilho",t:"Ganho por corrida maior",w:3,k:"h",x:"Mostrar a diferença de ganho semanal do Black contra o X."},
+ {c:"gatilho",t:"Carro novo e de modelo forte",w:2,k:"h",x:"Passa confiança ao passageiro e ajuda a manter a nota."},
+ {c:"trava",t:"Semanal e caução mais altas",w:3,k:"h",x:"A conta só fecha se ele rodar no Black de verdade."},
+ {c:"trava",t:"Nota abaixo do mínimo",w:2,k:"h",x:"Quem ainda não tem 4,85 não entra: oferecer Comfort primeiro."}
+];
+const PERS_PROD={
+ trust:{l:"Trust",s:"motorista de app em São Paulo",c:"#F2A314",key:"persona",base:PERS_BASE,re:/^trust$/i,
+  frase:`Homem de 35 a 45 anos, que sustenta a casa rodando mais de 45 horas por semana em Uber e 99, sem carro próprio nem crédito para financiar. Decide pelo celular e pelo WhatsApp, faz a conta por semana e fecha com quem entrega <b style="color:var(--y)">parcela que cabe, carro econômico e a certeza de não ficar parado</b>.`,
+  falar:["Mostrar o valor por <b>semana</b> e quanto sobra, não só o preço.","Abrir com consumo, km incluído e carro reserva.","Deixar claro como é a caução e a análise, antes do WhatsApp.","Prova de outros motoristas: tempo de casa, ganhos, categoria.","Resposta rápida no WhatsApp: é onde ele decide."],
+  foot:"Fontes dos dados: IBGE (PNAD), Amobitec/Cebrap, TST e os números do próprio painel; detalhes e links na aba Motoristas de app.",
+  nao:["Quer carro para passeio ou viagem (é Yalla Rent, não Trust).","Sem CNH com EAR ou com menos tempo de habilitação que o exigido.","Roda poucas horas por semana: a conta do aluguel não fecha.","Só curiosidade de preço, sem data para começar."]},
+ rent:{l:"Rent",s:"aluguel por diária para viajar",c:"#38BDF8",key:"persona_rent",base:PERS_RENT,re:/rent/i,
+  frase:`Pessoa de 30 a 50 anos, de São Paulo, que <b>não roda em aplicativo</b> e quer um carro por alguns dias para viajar ou passear com a família. Planeja perto do feriado, compara preço no celular e fecha com quem mostra <b style="color:var(--y)">preço total claro, carro confortável para estrada e retirada sem complicação</b>.`,
+  falar:["Preço <b>total</b> da viagem (diárias, proteção e km), não só a diária.","Carro pelo uso: porta-malas, conforto e consumo na estrada.","Explicar a caução e a forma de pagamento logo no anúncio.","Campanha no ar 2 a 3 semanas antes de cada feriado.","Resposta rápida no WhatsApp com o valor fechado."],
+  foot:"Fontes dos dados: Anuário da ABLA (via Mercado & Eventos e Panrotas) e as reservas do site. O resto é hipótese para validar com o comercial e com as reservas Rent.",
+  nao:["Motorista de app procurando carro para trabalhar (é Trust).","Quer o carro por meses (é Trust ou Dream).","Sem habilitação válida ou com menos tempo de CNH que o exigido.","Pede cotação sem data de viagem."]},
+ dream:{l:"Dream",s:"aluguel com opção de compra",c:"#2ED47A",key:"persona_dream",base:PERS_DREAM,re:/dream/i,
+  frase:`Motorista de app que já roda há algum tempo, paga em dia e <b>quer que o aluguel vire o carro dele</b>, porque o banco não financia. Pensa no longo prazo e fecha com quem mostra <b style="color:var(--y)">quanto falta para ser dono, regra de compra clara e segurança se a renda variar</b>.`,
+  falar:["Simulação semana a semana até a compra.","Deixar claro o valor final e o que acontece em atraso.","Usar o histórico Trust como porta de entrada (tempo de casa e pagamentos).","Prova social: motoristas que já ficaram com o carro.","Comparar com o custo de seguir só alugando."],
+  foot:"Fontes dos dados: oferta da Kovi no Uber Match e as reservas do site. Com poucos pedidos de Dream até agora, quase tudo é hipótese: validar com o comercial e com clientes Trust antigos.",
+  nao:["Está começando no app agora: ainda não tem renda estável para um contrato longo.","Histórico de atraso no Trust.","Quer o carro só por alguns meses.","Busca financiamento tradicional com entrada própria."]},
+ black:{l:"Black",s:"categoria premium nos apps",c:"#B07CFF",key:"persona_black",base:PERS_BLACK,re:/black/i,modelo:true,
+  frase:`Motorista experiente, com <b>nota 4,85 ou mais</b> e mais de 100 viagens, que trata o carro como empresa e quer subir para o Black para ganhar mais por corrida. Roda aeroporto e corporativo e fecha com quem garante <b style="color:var(--y)">carro aceito no Black em São Paulo, reserva da mesma categoria e uma conta que fecha</b>.`,
+  falar:["Ganho semanal do Black contra o X ou Comfort, com a semanal descontada.","Modelo, ano e cor dentro das regras da Uber para São Paulo.","Carro reserva da mesma categoria.","Upgrade por bom histórico: quem é cliente Trust e paga em dia sobe primeiro.","Linguagem de profissional: custo por km, consumo e manutenção."],
+  foot:"Fontes dos dados: regras da Uber para 2026 publicadas na imprensa (Times Brasil, Diário do Nordeste, Olhar Digital, Canal VE) e as reservas do site. Conferir a lista oficial de veículos aceitos da Uber antes de anunciar modelo ou ano.",
+  nao:["Nota abaixo de 4,85 ou menos de 100 viagens (oferecer Comfort ou X).","Roda poucas horas: a semanal maior não fecha.","Quer o carro premium para uso pessoal (é Rent).","Histórico de atraso ou dano no contrato atual."]}
+};
+const persProd=()=>PERS_PROD[persState().prod]?persState().prod:"trust";
+const PERS_STS={};
+const persSt=p=>PERS_STS[p]||(PERS_STS[p]={custom:null,at:null,mine:false,team:null,dirty:false,msg:""});
+const persBaseCur=()=>PERS_PROD[persProd()].base;
+const persLSk=p=>p==="trust"?"yalla_persona_v1":"yalla_persona_v1_"+p;
+function persProdSet(p){if(!PERS_PROD[p]||p===persProd())return;const S=persState(),W=PERS_ST.W;S.prod=p;S.sel=null;S.cat="all";S.run++;PERS_ST=persSt(p);PERS_ST.W=PERS_ST.W||W;render();}
+async function persTeamPut(pr,val){const r=await rpc("panel_kv_get",{p_token:SESS.token,p_key:"persona"}),cur=(r&&r.value)||{},nv={list:cur.list||null,at:cur.at||null,perfis:{...(cur.perfis||{})}};
+  if(pr==="trust"){nv.list=val?val.list:null;nv.at=val?val.at:null;}else if(val)nv.perfis[pr]=val;else delete nv.perfis[pr];
+  await rpc("panel_kv_set",{p_token:SESS.token,p_key:"persona",p_value:(!nv.list&&!Object.keys(nv.perfis).length)?null:nv});}
+function persAutoProd(){const pr=persProd(),P=PERS_PROD[pr],out=[],R=REAL.res||{},all=(typeof allRealMonths==="function"?allRealMonths():Object.keys(R)),full=all.filter(m=>!(typeof PARTIAL!=="undefined"&&PARTIAL[m]));
+  const pc=(a,b)=>b?Math.round(a/b*100):0;
+  try{const ms=full.filter(m=>R[m]&&R[m].total).slice(-3);if(!ms.length)return out;const lab=ms.length>1?ms[0]+" a "+ms[ms.length-1]:ms[0],src="Reservas Yalla Digital · "+lab;
+    const sum=k=>{const o={};ms.forEach(m=>Object.entries(R[m][k]||{}).forEach(([a,v])=>o[a]=(o[a]||0)+v));return o;},tot=o=>Object.values(o).reduce((a,b)=>a+b,0);
+    if(P.modelo){const mo=sum("modelos"),mc=sum("modelosContr"),bk=Object.entries(mo).filter(([k])=>P.re.test(k)),bc=Object.entries(mc).filter(([k])=>P.re.test(k)),nb=bk.reduce((s,x)=>s+x[1],0),nc=bc.reduce((s,x)=>s+x[1],0);
+      if(nb){const t=bk.sort((a,b)=>b[1]-a[1])[0];out.push({c:"busca",t:`${num(nb)} pedidos de carro Black`,w:3,k:"a",x:`${num(nb)} reservas em grupos com "Black" no nome (${pc(nb,tot(mo))}% de todas as reservas). Grupo mais pedido: ${t[0]}.`,f:src});}
+      if(nc)out.push({c:"gatilho",t:`${num(nc)} contratos Black`,w:2,k:"a",x:`${num(nc)} contratos fechados em grupos Black no período: ${pc(nc,nb)} a cada 100 pedidos desses grupos viraram contrato.`,f:src});}
+    else{const D=sum("modalidade"),k=Object.keys(D).filter(x=>P.re.test(x)&&!/cargas/i.test(x)),n=k.reduce((s,x)=>s+D[x],0),t=tot(D);
+      if(t&&pr!=="trust"){out.push({c:"onde",t:n<20?`Só ${num(n)} pedidos de ${P.l} no site`:`${num(n)} pedidos de ${P.l} (${pc(n,t)}%)`,w:n<20?2:3,k:"a",x:`${num(n)} de ${num(t)} pedidos de reserva no site foram ${P.l} no período.${n<20?" Ainda há pouca procura: a persona é quase toda hipótese.":""}`,f:src});}}
+  }catch(e){}
+  return out;}
+
+let PERS_ST=persSt("trust");
 function persAuto(){const out=[],R=REAL.res||{},all=(typeof allRealMonths==="function"?allRealMonths():Object.keys(R)),full=all.filter(m=>!(typeof PARTIAL!=="undefined"&&PARTIAL[m]));
   const add=(c,t,w,x,f)=>out.push({c,t,w,k:"a",x,f}),p=(a,b)=>b?Math.round(a/b*100):0;
   try{const ms=full.filter(m=>R[m]&&R[m].total).slice(-3);
@@ -4410,15 +4553,17 @@ function persAuto(){const out=[],R=REAL.res||{},all=(typeof allRealMonths==="fun
     if(ld>20)add("onde",`Lead de formulário a ${brl(sp/ld,2)}`,2,`Formulários da Meta em ${mm}: ${num(ld)} leads com ${brl(sp)} de investimento.`,"Meta Ads · "+mm);}}catch(e){}
   try{const dy=REAL.daily,ci=dy.cols.indexOf("wpp"),ks=Object.keys(dy.days).sort().slice(-30),v=ks.map(k=>dy.days[k][ci]||0),s=v.reduce((a,b)=>a+b,0);if(ci>=0&&s>30)add("rotina",`${num(Math.round(s/ks.length))} cliques no WhatsApp por dia`,2,`Média dos últimos ${ks.length} dias com dado: ${num(s)} cliques no botão de WhatsApp do site.`,"GA4 · eventos do site");}catch(e){}
   return out;}
-function persBuild(){const S=persState(),base=(PERS_ST.custom||PERS_BASE).map(p=>({...p}));PERS_ST.nBase=base.length;
-  const net=((APPS.d&&APPS.d.persona)||[]).filter(n=>n&&n.t&&PERS_CATS[n.c]&&!base.some(b=>normTxt(b.t)===normTxt(n.t))).map(n=>({c:n.c,t:String(n.t).slice(0,44),w:[1,2,3].includes(n.w)?n.w:2,k:"d",x:n.x||"",f:n.f||"pesquisa semanal",net:true}));
-  PERS=S.auto===false?base:[...base,...persAuto(),...net];}
+function persBuild(){const S=persState(),pr=persProd();PERS_ST=persSt(pr);const base=(PERS_ST.custom||persBaseCur()).map(p=>({...p}));PERS_ST.nBase=base.length;
+  const net=pr!=="trust"?[]:((APPS.d&&APPS.d.persona)||[]).filter(n=>n&&n.t&&PERS_CATS[n.c]&&!base.some(b=>normTxt(b.t)===normTxt(n.t))).map(n=>({c:n.c,t:String(n.t).slice(0,44),w:[1,2,3].includes(n.w)?n.w:2,k:"d",x:n.x||"",f:n.f||"pesquisa semanal",net:true}));
+  PERS=S.auto===false?base:[...base,...(pr==="trust"?persAuto():persAutoProd()),...net];}
 function persNorm(a){return(Array.isArray(a)?a:[]).filter(p=>p&&typeof p.t==="string"&&p.t.trim()&&PERS_CATS[p.c]).slice(0,60).map(p=>({c:p.c,t:p.t.trim().slice(0,44),w:[1,2,3].includes(+p.w)?+p.w:2,k:p.k==="d"?"d":"h",x:String(p.x||"").slice(0,300),f:String(p.f||"").slice(0,80)}));}
-async function persLoad(){let loc=null;try{loc=JSON.parse(localStorage.getItem("yalla_persona_v1")||"null");}catch(e){}
-  if(loc&&loc.list){PERS_ST.custom=persNorm(loc.list);PERS_ST.at=loc.at;PERS_ST.mine=!!loc.mine;}
-  if(AUTH_ON&&SESS&&SESS.token){try{const r=await rpc("panel_kv_get",{p_token:SESS.token,p_key:"persona"});if(r&&r.value&&r.value.list){PERS_ST.team={list:persNorm(r.value.list),at:r.at};if(!(PERS_ST.mine&&!onlAdmin())){PERS_ST.custom=PERS_ST.team.list.map(p=>({...p}));PERS_ST.at=r.at;PERS_ST.mine=false;}}}catch(e){}}
+async function persLoad(){Object.keys(PERS_PROD).forEach(p=>{const st=persSt(p);let loc=null;try{loc=JSON.parse(localStorage.getItem(persLSk(p))||"null");}catch(e){}
+    if(loc&&loc.list){st.custom=persNorm(loc.list);st.at=loc.at;st.mine=!!loc.mine;}});
+  if(AUTH_ON&&SESS&&SESS.token){try{const r=await rpc("panel_kv_get",{p_token:SESS.token,p_key:"persona"}),v=r&&r.value;
+    if(v)Object.keys(PERS_PROD).forEach(p=>{const src=p==="trust"?(v.list?{list:v.list,at:v.at||r.at}:null):(v.perfis&&v.perfis[p]);if(!src||!src.list)return;const st=persSt(p);
+      st.team={list:persNorm(src.list),at:src.at||r.at};if(!(st.mine&&!onlAdmin())){st.custom=st.team.list.map(x=>({...x}));st.at=st.team.at;st.mine=false;}});}catch(e){}}
   if(state.page==="persona")render();}
-function persWork(){if(!PERS_ST.custom)PERS_ST.custom=PERS_BASE.map(p=>({c:p.c,t:p.t,w:p.w,k:p.k,x:p.x,f:p.f||""}));return PERS_ST.custom;}
+function persWork(){if(!PERS_ST.custom)PERS_ST.custom=persBaseCur().map(p=>({c:p.c,t:p.t,w:p.w,k:p.k,x:p.x,f:p.f||""}));return PERS_ST.custom;}
 function persEditToggle(){const S=persState();S.edit=!S.edit;S.sel=null;PERS_ST.msg="";render();}
 function persAutoToggle(){const S=persState();S.auto=S.auto===false;render();}
 function persClick(i){const S=persState();if(!S.edit){persTip(i);return;}
@@ -4429,35 +4574,35 @@ function persFormSave(){const S=persState(),v=persFormRead();if(!v.t){PERS_ST.ms
   if(S.sel!=null&&L[S.sel])L[S.sel]=v;else L.push(v);S.sel=null;PERS_ST.dirty=true;PERS_ST.msg="Alterado. Salve para manter.";persState().run++;render();}
 function persDel(){const S=persState(),L=persWork();if(S.sel!=null&&L[S.sel]){L.splice(S.sel,1);S.sel=null;PERS_ST.dirty=true;PERS_ST.msg="Removida. Salve para manter.";render();}}
 function persNew(){persState().sel=null;render();const t=document.getElementById("pfT");if(t)t.focus();}
-async function persSave(){const L=persNorm(persWork()),at=new Date().toISOString(),adm=onlAdmin();
-  try{localStorage.setItem("yalla_persona_v1",JSON.stringify({list:L,at,mine:!adm}));}catch(e){}
+async function persSave(){const pr=persProd(),L=persNorm(persWork()),at=new Date().toISOString(),adm=onlAdmin();
+  try{localStorage.setItem(persLSk(pr),JSON.stringify({list:L,at,mine:!adm}));}catch(e){}
   PERS_ST.custom=L;PERS_ST.at=at;PERS_ST.mine=!adm;PERS_ST.dirty=false;
-  if(adm){try{await rpc("panel_kv_set",{p_token:SESS.token,p_key:"persona",p_value:{list:L}});PERS_ST.team={list:L,at};PERS_ST.msg="Salvo para toda a equipe.";}catch(e){PERS_ST.msg="Salvo só neste navegador: "+e.message;}}
+  if(adm){try{await persTeamPut(pr,{list:L,at});PERS_ST.team={list:L,at};PERS_ST.msg="Salvo para toda a equipe.";}catch(e){PERS_ST.msg="Salvo só neste navegador: "+e.message;}}
   else PERS_ST.msg=AUTH_ON?"Salvo neste navegador. Só o administrador grava a versão da equipe.":"Salvo neste navegador (versão local, sem login).";
   render();}
-async function persReset(){if(!confirm(PERS_ST.mine&&PERS_ST.team?"Descartar a sua montagem e voltar à versão da equipe?":"Voltar à persona padrão? A montagem atual será apagada."))return;
-  try{localStorage.removeItem("yalla_persona_v1");}catch(e){}
+async function persReset(){const pr=persProd();if(!confirm(PERS_ST.mine&&PERS_ST.team?"Descartar a sua montagem e voltar à versão da equipe?":`Voltar à persona padrão do ${PERS_PROD[pr].l}? A montagem atual será apagada.`))return;
+  try{localStorage.removeItem(persLSk(pr));}catch(e){}
   if(PERS_ST.mine&&PERS_ST.team){PERS_ST.custom=PERS_ST.team.list.map(p=>({...p}));PERS_ST.at=PERS_ST.team.at;}
-  else{PERS_ST.custom=null;PERS_ST.at=null;if(onlAdmin()){try{await rpc("panel_kv_set",{p_token:SESS.token,p_key:"persona",p_value:null});PERS_ST.team=null;}catch(e){}}}
+  else{PERS_ST.custom=null;PERS_ST.at=null;if(onlAdmin()){try{await persTeamPut(pr,null);PERS_ST.team=null;}catch(e){}}}
   PERS_ST.mine=false;PERS_ST.dirty=false;PERS_ST.msg="Restaurada.";persState().sel=null;render();}
 function persLayout(){ /* encaixe sem sobreposição: do mais importante para o menos, do centro para fora */
-  const act=persState().cat,items=PERS.map((p,i)=>({...p,i})).sort((a,b)=>b.w-a.w||a.i-b.i),dense=items.length>38,W=PERS_ST.W||Math.max(320,Math.min(820,innerWidth-(innerWidth>1100?630:60)));
+  const act=persState().cat,items=PERS.map((p,i)=>({...p,i})).sort((a,b)=>b.w-a.w||a.i-b.i),dense=items.length>38,W=PERS_ST.W||Math.max(320,Math.min(820,innerWidth-(innerWidth>1240?630:innerWidth>1000?320:60)));
   for(let Hh=dense?760:660;;Hh+=50){const r=persPack(items,act,dense,W,Hh);if(r||Hh>2600){const o=r||persPack(items,act,dense,W,Hh,true);o.H=Hh;return o;}}}
 function persPack(items,act,dense,W,Hh,force){const placed=[],out=[];
-  const hit=(x,y,w,h)=>(Math.abs(x)<w+95/W*100&&Math.abs(y)<h+125/Hh*100)||placed.some(b=>Math.abs(x-b.x)<w+b.w+.9&&Math.abs(y-b.y)<h+b.h+1);
+  const gx=Math.max(.9,7/W*100),gy=7/Hh*100,hit=(x,y,w,h)=>(Math.abs(x)<w+95/W*100&&Math.abs(y)<h+125/Hh*100)||placed.some(b=>Math.abs(x-b.x)<w+b.w+gx&&Math.abs(y-b.y)<h+b.h+gy);
   const cx=persPack.cx||(persPack.cx=document.createElement("canvas").getContext("2d")),small=W<560;
   items.forEach((p,n)=>{const ring=p.w===3?0:p.w===2?1:2,fs=small?11:dense?(ring===0?12.5:11.5):(ring===0?14:ring===2?11.5:12.5);cx.font=(ring===0&&!small?700:600)+" "+fs+"px Montserrat";
     const px=cx.measureText(p.t).width+(p.k==="a"?17:0)+(small?20:dense?(ring===0?28:24):(ring===0?34:28)),w=px/W*50,h=(small?30:dense?(ring===0?36:32):(ring===0?44:36))/Hh*50;
     let best=null;const a0=n*2.39996;
     for(let r=(ring===0?18:ring===1?24:30);r<=74&&!best;r+=2){for(let k=0;k<32;k++){const a=a0+k/32*Math.PI*2,x=Math.cos(a)*r,y=Math.sin(a)*r;if(Math.abs(x)+w>49||Math.abs(y)+h>48)continue;if(!hit(x,y,w,h)){best={x,y};break;}}}
-    if(!best)for(let y=-47+h;y<=47-h&&!best;y+=1.5)for(let x=-48.5+w;x<=48.5-w;x+=1.5)if(!hit(x,y,w,h)){best={x,y};break;}
+    if(!best){const sy=Math.min(1.5,12/Hh*100);for(let y=-47+h;y<=47-h&&!best;y+=sy)for(let x=-48.5+w;x<=48.5-w;x+=1.5)if(!hit(x,y,w,h)){best={x,y};break;}}
     if(!best){if(!force){out.fail=true;return;}best={x:(n%2?1:-1)*(48-w),y:46-h};}
     placed.push({x:best.x,y:best.y,w,h});out.push({...p,x:best.x,y:best.y,ring,dim:act!=="all"&&p.c!==act});});
   return out.fail?null:out;}
 function persStage(){const S=persState(),L=persLayout(),big=PERS.length>38;
-  return`<div class="ps-stage${S.edit?" edit":""}${big?" dense":""}" id="psStage" data-run="${S.run}" style="${big?`height:${L.H+40}px;min-height:${L.H+40}px`:""}">
+  return`<div class="ps-stage${S.edit?" edit":""}${big?" dense":""}" id="psStage" data-run="${S.run}" style="height:${L.H+40}px;min-height:${L.H+40}px">
     <div class="ps-orbit o1"></div><div class="ps-orbit o2"></div><div class="ps-orbit o3"></div>
-    <div class="ps-core"><div class="ps-av">${persAvatar()}</div><div class="ps-name">O lead ideal</div><div class="ps-sub">motorista de app em São Paulo</div></div>
+    <div class="ps-core"><div class="ps-av">${persAvatar(PERS_PROD[persProd()].c)}</div><div class="ps-name">O lead ideal</div><div style="font:800 10.5px Montserrat;letter-spacing:.16em;text-transform:uppercase;color:${PERS_PROD[persProd()].c};margin:1px 0">${PERS_PROD[persProd()].l}</div><div class="ps-sub">${PERS_PROD[persProd()].s}</div></div>
     ${L.map((p,n)=>{const col=PERS_CATS[p.c][1];return`<button class="ps-chip r${p.ring}${p.dim?" dim":""}${p.k==="a"?" auto":""}${S.edit&&S.sel===p.i?" sel":""}" style="--x:${p.x.toFixed(1)}%;--y:${p.y.toFixed(1)}%;--c:${col};--d:${(.4+n*.07).toFixed(2)}s;--f:${(5+((p.i*7)%5)).toFixed(0)}s;--fd:${(-(p.i%7)*.7).toFixed(1)}s" onmouseenter="persTip(${p.i})" onfocus="persTip(${p.i})" onclick="persClick(${p.i})"><span>${p.k==="a"?SI("bolt",12)+" ":""}${mapaEsc(p.t)}</span></button>`}).join("")}
   </div>`;}
 function persTip(i){const p=PERS[i],e=document.getElementById("psTip");if(!p||!e)return;const c=PERS_CATS[p.c];
@@ -4478,9 +4623,11 @@ function persEditorHTML(){const S=persState(),L=persWork(),cur=S.sel!=null?L[S.s
     <div style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px">
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" style="height:34px;font-size:12px;${PERS_ST.dirty?"background:var(--y);color:#0D1220;border-color:var(--y)":""}" onclick="persSave()">${SI("save",13)} ${adm?"Salvar para a equipe":"Salvar neste navegador"}</button><button class="btn" style="height:34px;font-size:12px" onclick="persReset()">${PERS_ST.mine&&PERS_ST.team?"Voltar à versão da equipe":"Voltar ao padrão"}</button></div>
       <p role="status" style="font-size:11.5px;color:${PERS_ST.dirty?"var(--amber)":"var(--muted)"};margin-top:8px;line-height:1.5">${mapaEsc(PERS_ST.msg||"")} ${L.length} características na montagem${PERS_ST.at?" · salva em "+new Date(PERS_ST.at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):" · ainda não salva"}${PERS_ST.mine?" · versão só deste navegador":""}.</p></div></div>`;}
-PERS_PAGES.persona_after=function(){const s=document.getElementById("psStage");if(s&&s.clientWidth&&Math.abs(s.clientWidth-(PERS_ST.W||0))>24){PERS_ST.W=s.clientWidth;s.outerHTML=persStage();}};
-PERS_PAGES.persona=function(){const S=persState();persBuild();const nd=PERS.filter(p=>p.k==="d").length,na=PERS.filter(p=>p.k==="a").length,nh=PERS.length-nd-na,bs=(on,c)=>on?`border-color:${c||"var(--y)"};color:${c||"var(--y)"}`:"";
-  return`<div class="card" style="margin-bottom:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+PERS_PAGES.persona_after=function(){if(document.fonts&&document.fonts.status!=="loaded"&&!persState().fw){persState().fw=1;document.fonts.ready.then(()=>{const e=document.getElementById("psStage");if(e&&state.page==="persona")e.outerHTML=persStage();});}const s=document.getElementById("psStage");if(s&&s.clientWidth&&Math.abs(s.clientWidth-(PERS_ST.W||0))>24){PERS_ST.W=s.clientWidth;s.outerHTML=persStage();}};
+PERS_PAGES.persona=function(){const S=persState();persBuild();const pr=persProd(),PP=PERS_PROD[pr],nd=PERS.filter(p=>p.k==="d").length,na=PERS.filter(p=>p.k==="a").length,nh=PERS.length-nd-na,bs=(on,c)=>on?`border-color:${c||"var(--y)"};color:${c||"var(--y)"}`:"";
+  return`<div class="card" role="group" aria-label="Escolha a persona" style="margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span style="font:700 10px Montserrat;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-right:4px">Persona</span>
+    ${Object.entries(PERS_PROD).map(([k,p])=>`<button class="btn" aria-pressed="${k===pr}" style="height:auto;min-height:42px;padding:6px 14px;flex-direction:column;align-items:flex-start;gap:1px;${k===pr?`border-color:${p.c};background:${p.c}1f`:""}" onclick="persProdSet('${k}')"><b style="font:700 13px Montserrat;color:${k===pr?p.c:"var(--txt)"}">${p.l}</b><span style="font:500 10.5px Montserrat;color:var(--muted)">${p.s}</span></button>`).join("")}</div>
+  <div class="card" style="margin-bottom:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     <button class="btn" style="height:32px;font-size:12px;${bs(S.cat==="all")}" onclick="persCat('all')">Tudo</button>
     ${Object.entries(PERS_CATS).map(([k,[l,c]])=>`<button class="btn" style="height:32px;font-size:12px;${bs(S.cat===k,c)}" onclick="persCat('${k}')"><i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c};margin-right:6px"></i>${l}</button>`).join("")}
     <span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" style="height:32px;font-size:12px;${bs(S.auto!==false,"#4FD1C5")}" onclick="persAutoToggle()" title="Características calculadas com os dados de anúncios, site e reservas do painel, mais a pesquisa semanal">${SI("bolt",13)} Automático ${S.auto!==false?"ligado":"desligado"}</button>
@@ -4488,7 +4635,13 @@ PERS_PAGES.persona=function(){const S=persState();persBuild();const nd=PERS.filt
     <button class="btn" style="height:32px;font-size:12px" onclick="persReplay()">${SI("redo",13)} Montar de novo</button></span></div>
   <div class="ps-wrap"><div class="card" style="padding:0;overflow:hidden">${persStage()}</div>
     <div>${S.edit?persEditorHTML():""}<div class="card" ${S.edit?'style="margin-top:14px"':""}><h3>Detalhe</h3><div id="psTip" style="font-size:13px;min-height:${S.edit?90:150}px"><span style="color:var(--muted);line-height:1.6">Passe o mouse (ou toque) em uma característica para ver o que ela significa e de onde vem.</span></div>
-      <div style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px;font-size:12px;color:var(--muted);line-height:1.7"><span class="ps-k a">Automático</span> ${na} calculadas agora com anúncios, site e reservas do painel. Mudam sozinhas quando os dados são atualizados.<br><span class="ps-k d">Dado</span> ${nd} vêm de pesquisa pública ou de números conferidos.<br><span class="ps-k h">Hipótese</span> ${nh} são leitura de mercado: confirmar com o comercial e com os leads reais.</div></div></div></div>`;};
+      <div style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px;font-size:12px;color:var(--muted);line-height:1.7"><span class="ps-k a">Automático</span> ${na} calculadas agora com anúncios, site e reservas do painel. Mudam sozinhas quando os dados são atualizados.<br><span class="ps-k d">Dado</span> ${nd} vêm de pesquisa pública ou de números conferidos.<br><span class="ps-k h">Hipótese</span> ${nh} são leitura de mercado: confirmar com o comercial e com os leads reais.</div></div></div></div>
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr));margin-top:14px">
+    ${T("Retrato em uma frase",`<p style="font-size:14px;line-height:1.75;color:var(--txt);margin:0">${PP.frase.replace("color:var(--y)","color:"+PP.c)}</p>`,PP.l)}
+    ${T("Como falar com ele",`<ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.75;color:var(--txt)">${PP.falar.map(x=>`<li>${x}</li>`).join("")}</ul>`)}
+    ${T("Lead que não é o ideal",`<ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.75;color:var(--muted)">${PP.nao.map(x=>`<li>${x}</li>`).join("")}</ul>`)}
+  </div>
+  <p style="font-size:11px;color:var(--dim);margin-top:10px;line-height:1.5">A persona é um retrato médio para orientar campanhas e atendimento, não uma regra para aprovar ou recusar pessoas. ${PP.foot}</p>`;};
 
 Object.assign(P,APPS_PAGES,PERS_PAGES,NEWS_PAGES);
 {const _u=P.usuarios;if(_u)P.usuarios=function(){return T("Quem está online no painel",'<div id="onlCard">'+onlCardHTML()+'</div>')+'<div style="height:14px"></div>'+_u.apply(this,arguments);};}
