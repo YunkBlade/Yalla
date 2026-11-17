@@ -44,7 +44,9 @@ module.exports = async (req, res) => {
     if (!l.lojas.length) throw new Error("nenhuma agência lida (" + l.falhas + " falhas)");
     res.setHeader("Cache-Control", "public, s-maxage=604800, stale-while-revalidate=1209600");
     res.statusCode = 200;
-    res.end(JSON.stringify({ gerado: new Date().toISOString(), ms: Date.now() - t0, redes: { localiza: { fonte: "Site oficial da Localiza (páginas da rede de agências, dados estruturados schema.org)", ...l } } }));
+    const out = { gerado: new Date().toISOString(), ms: Date.now() - t0, redes: { localiza: { fonte: "Site oficial da Localiza (páginas da rede de agências, dados estruturados schema.org)", ...l } } };
+    if ((req.query || {}).resumo) { const uf = {}; l.lojas.forEach(x => { uf[x[4]] = (uf[x[4]] || 0) + 1; }); out.redes.localiza = { fonte: out.redes.localiza.fonte, paginas: l.paginas, lidas: l.lidas, falhas: l.falhas, completo: l.completo, total: l.lojas.length, porUF: uf }; }
+    res.end(JSON.stringify(out));
   } catch (e) {
     res.setHeader("Cache-Control", "no-store"); res.statusCode = 502; res.end(JSON.stringify({ error: e.message }));
   }
