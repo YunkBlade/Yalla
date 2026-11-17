@@ -12,6 +12,9 @@
     },
     "api/endereco.js": {
       "maxDuration": 30
+    },
+    "api/redes.js": {
+      "maxDuration": 60
     }
   },
   "headers": [
