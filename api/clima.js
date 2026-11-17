@@ -75,7 +75,7 @@ module.exports = async (req, res) => {
       return { id: x.icaoId, nome: a ? a[0] + (a[2] ? " · " + a[2] : "") : String(x.name || "").replace(/, [A-Z]{2}, BR$/, "").replace(/\s+(Intl|Arpt|Airport)\b.*$/i, "").trim(), uf: a ? a[1] : "", lat: +x.lat, lon: +x.lon,
         temp: t, umid, vento: x.wspd != null ? Math.round(x.wspd * 1.852) : null, dir: x.wdir, vis: x.visib, wx: x.wxString || "", nuvens: x.cover || "", tipo: wxMetar(x), obs: x.obsTime ? new Date(x.obsTime * 1000).toISOString() : x.reportTime, raw: x.rawOb };
     });
-    const by = {}; est.forEach(e => { if (!by[e.id] || by[e.id].obs < e.obs) by[e.id] = e; });
+    const by = {}, agora = Date.now(); est.forEach(e => { if (e.obs && agora - new Date(e.obs).getTime() > 3 * 3600e3) return; if (!by[e.id] || by[e.id].obs < e.obs) by[e.id] = e; });
     res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=1800");
     res.statusCode = 200; res.end(JSON.stringify({ fonte: "aviationweather.gov (METAR dos aeroportos, domínio público)", gerado: new Date().toISOString(), estacoes: Object.values(by) }));
   } catch (e) {
