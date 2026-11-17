@@ -9,6 +9,9 @@
     },
     "api/mapa.js": {
       "maxDuration": 20
+    },
+    "api/endereco.js": {
+      "maxDuration": 30
     }
   },
   "headers": [

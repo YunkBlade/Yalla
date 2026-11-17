@@ -42,8 +42,15 @@ function melhor(fs, info, ref, num) {
   c.sort((a, b) => (b.s - a.s) || (a.dn - b.dn) || (a.d - b.d));
   return c[0] || null;
 }
+function centro(geom) {
+  const rings = geom.type === "Polygon" ? [geom.coordinates[0]] : geom.type === "MultiPolygon" ? geom.coordinates.map(p => p[0]) : [];
+  let A = 0, X = 0, Y = 0;
+  for (const r of rings) for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const f = r[j][0] * r[i][1] - r[i][0] * r[j][1]; A += f; X += (r[j][0] + r[i][0]) * f; Y += (r[j][1] + r[i][1]) * f; }
+  if (Math.abs(A) < 1e-14) { const p = rings[0] || [[0, 0]]; return p[0]; }
+  return [+(X / (3 * A)).toFixed(7), +(Y / (3 * A)).toFixed(7)];
+}
 async function lotes(filtro, max) {
-  const url = `${W}?service=WFS&version=1.0.0&request=GetFeature&typeName=geoportal:lote_cidadao&outputFormat=application/json&srsName=EPSG:4326&maxFeatures=${max || 50}&propertyName=nm_logradouro_completo,cd_numero_porta,tx_complemento_endereco,ge_poligono&CQL_FILTER=${encodeURIComponent(filtro)}`;
+  const url = `${W}?service=WFS&version=1.0.0&request=GetFeature&typeName=geoportal:lote_cidadao&outputFormat=application/json&srsName=EPSG:4326&maxFeatures=${max || 50}&CQL_FILTER=${encodeURIComponent(filtro)}`;
   const j = await getJ(url, 15000); return (j && j.features) || [];
 }
 async function geosampa(p, ref) {
@@ -66,9 +73,10 @@ async function geosampa(p, ref) {
 async function photon(q, p) {
   const j = await getJ(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=8&lat=-23.55&lon=-46.63&bbox=-74.1,-33.8,-34.7,5.3`, 6000);
   const fs = ((j && j.features) || []).filter(f => (f.properties || {}).countrycode === "BR");
-  const casa = p && fs.find(f => f.properties.type === "house" && String(f.properties.housenumber || "").replace(/\D/g, "") === p.num);
+  const alvo = p ? palavras(p.rua) : null, mesmaRua = f => !alvo || nota(f.properties.street || f.properties.name || "", alvo) >= Math.max(1, alvo.fortes.filter(x => !TITULOS.has(x) && !Object.values(ABR).includes(x)).length);
+  const casa = p && fs.find(f => f.properties.type === "house" && String(f.properties.housenumber || "").replace(/\D/g, "") === p.num && mesmaRua(f));
   if (casa) return { c: casa.geometry.coordinates, precisao: "numero", detalhe: `${casa.properties.street || casa.properties.name}, ${casa.properties.housenumber}` };
-  const rua = fs.find(f => f.properties.type === "street") || fs[0];
+  const rua = fs.find(f => f.properties.type === "street" && mesmaRua(f)) || fs.find(f => mesmaRua(f)) || (p ? null : fs[0]);
   if (rua) return { c: rua.geometry.coordinates, precisao: "rua", detalhe: rua.properties.name || "" };
   return null;
 }
@@ -83,5 +91,6 @@ module.exports = async (req, res) => {
   if (!r && ph) { r = ph; r.fonte = "OpenStreetMap (Photon)"; }
   if (!r) { res.setHeader("Cache-Control", "no-store"); res.statusCode = erros.length ? 502 : 404; res.end(JSON.stringify({ error: "endereço não encontrado", detalhe: erros })); return; }
   res.setHeader("Cache-Control", "public, s-maxage=604800, stale-while-revalidate=2592000");
+  if (erros.length) r.avisos = erros;
   res.statusCode = 200; res.end(JSON.stringify({ q, ...r }));
 };
