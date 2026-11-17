@@ -3,13 +3,13 @@
 const Q = '[out:json][timeout:50];nwr["amenity"="car_rental"](-33.8,-74.1,5.3,-34.7);out center tags qt;';
 const SERVERS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter", "https://overpass.private.coffee/api/interpreter"];
 const MARCAS = [
-  ["localiza", "Localiza / Zarp", "#22C55E", /localiza|\bzarp\b/],
+  ["localiza", "Localiza / Zarp", "#22C55E", /\blocaliza\b|\bzarp\b/],
   ["movida", "Movida / Moover", "#FF7A1A", /movida|moover/],
   ["unidas", "Unidas", "#38BDF8", /\bunidas\b/],
   ["kovi", "Kovi", "#C084FC", /\bkovi\b/],
   ["foco", "Foco", "#F43F5E", /\bfoco\b/],
   ["app", "Locadoras para motorista de app", "#F06CB4", /carro na m[aã]o|loko ?paka|lm ve[ií]culos|alem[aã]o loc|black loc|urban loc|\b957\b|cabral loc|lumina|sampa ?car|motorista(s)? de app|para app|\bapp\b|uber|\b99\b/],
-  ["intl", "Redes internacionais", "#A3E635", /hertz|avis|budget|europcar|sixt|enterprise|alamo|national|thrifty|dollar|rent ?a ?car/],
+  ["intl", "Redes internacionais", "#A3E635", /\bhertz\b|\bavis\b|\bbudget\b|europcar|\bsixt\b|enterprise rent|\balamo\b|thrifty/],
   ["outras", "Outras locadoras", "#94A3B8", /.*/]
 ];
 const HDR = { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "painel-relatorios/1.0", "Accept": "application/json" };
