@@ -1,5 +1,6 @@
 {
   "cleanUrls": true,
+  "functions": { "api/risco.js": { "maxDuration": 45 } },
   "headers": [
     { "source": "/(.*)", "headers": [ { "key": "X-Robots-Tag", "value": "noindex, nofollow" } ] }
   ]
