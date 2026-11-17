@@ -10,6 +10,7 @@ module.exports = async (req, res) => {
     const txt = await r.text();
     const apis = [...new Set((txt.match(/https?:\/\/[^"'\s<>\\]+/g) || []).filter(x => /api|json|loja|agenc|store|branch|location|unidade/i.test(x)))].slice(0, 80);
     const caminhos = [...new Set((txt.match(/["'](\/[^"'\s<>]*(api|loja|agenc|store|branch|location|unidade)[^"'\s<>]*)["']/gi) || []).map(x => x.slice(1, -1)))].slice(0, 80);
-    res.end(JSON.stringify({ s: r.status, url: r.url, tipo: r.headers.get("content-type"), tam: txt.length, apis, caminhos, trecho: txt.slice(de, ate) }));
+    let achados; if (req.query.re) { const re = new RegExp(String(req.query.re).slice(0, 80), "gi"); achados = []; let m, n = 0; while ((m = re.exec(txt)) && n < +(req.query.n || 6)) { achados.push({ i: m.index, t: txt.slice(Math.max(0, m.index - +(req.query.antes || 200)), m.index + +(req.query.depois || 400)) }); n++; } achados.total = (txt.match(re) || []).length; }
+    res.end(JSON.stringify({ s: r.status, url: r.url, tipo: r.headers.get("content-type"), tam: txt.length, apis: req.query.re ? undefined : apis, caminhos: req.query.re ? undefined : caminhos, total: achados && (txt.match(new RegExp(String(req.query.re).slice(0, 80), "gi")) || []).length, achados, trecho: req.query.re ? undefined : txt.slice(de, ate) }));
   } catch (e) { res.statusCode = 502; res.end(JSON.stringify({ error: e.message })); } finally { clearTimeout(t); }
 };
