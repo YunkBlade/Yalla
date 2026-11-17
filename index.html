@@ -899,7 +899,7 @@ function mapaTour(on){MAPA.tour=on==null?!MAPA.tour:on;clearTimeout(MAPA.tourT);
 function mapaLocFocus(i,keep){const p=(MAPA.loc||[])[i],m=MAPA.map;if(!p||!m||!MAPA.ready)return;if(MAPA.tour)mapaTour(false);MAPA.lastTouch=Date.now()-2500;mapaSelect(null);
   if(!keep||m.getZoom()<13)m.flyTo({center:[p.lng,p.lat],zoom:16.2,pitch:REDUCED?0:70,bearing:m.getBearing(),duration:REDUCED?0:2600,essential:true});
   const L=mapaLocate([p.lng,p.lat]),km=L.km,kt=km<1?Math.round(km*1000)+" m":km.toFixed(1).replace(".",",")+" km";
-  mapaPopup([p.lng,p.lat],`<span class="mp-tag" style="color:${p.kind==="yalla"?"var(--y)":"#B07CFF"}">${p.kind==="yalla"?"Unidade Yalla":"Concorrente"}</span><b>${mapaEsc(p.name)}</b><div class="mp-s">${mapaEsc(p.addr||"")}${p.approx?"<br>Posição aproximada (nível da rua)":""}${L.near?`<br>${L.inside?"Dentro da área de risco "+mapaEsc(L.inside.name):"Área de risco mais próxima: "+mapaEsc(L.near.name)+", a "+kt}`:""}</div>${mapaGLink([p.lng,p.lat])}`);}
+  mapaPopup([p.lng,p.lat],`<span class="mp-tag" style="color:${p.kind==="yalla"?"var(--y)":"#B07CFF"}">${p.kind==="yalla"?"Unidade Yalla":"Concorrente"}</span><b>${mapaEsc(p.name)}</b><div class="mp-s">${mapaEsc(p.addr||"")}${p.approx?"<br>Posição aproximada (nível da rua)":p.prec?`<br><span style="color:var(--green)">Posição exata</span>: ${({lote:"lote fiscal da Prefeitura de SP com o mesmo número",numero:"número da rua no OpenStreetMap",predio:"prédio do Carrefour onde fica a loja (OpenStreetMap)"})[p.prec]||""}`:""}${L.near?`<br>${L.inside?"Dentro da área de risco "+mapaEsc(L.inside.name):"Área de risco mais próxima: "+mapaEsc(L.near.name)+", a "+kt}`:""}</div>${mapaGLink([p.lng,p.lat])}`);}
 function mapaLocToggle(){mapaLayer("showLoc");}
 function mapaFull(on){const b=document.body,want=on==null?!b.classList.contains("mp-full"):on;if(want===b.classList.contains("mp-full"))return;
   b.classList.toggle("mp-full",want);
@@ -4032,7 +4032,9 @@ async function brLoad(){if(BRL.st==="ok"||BRL.st==="loading")return;BRL.st="load
   if(BRL.st==="ok")brPrep();brApply();}
 function brPrep(){const F=(typeof BR_UF!=="undefined"&&BR_UF.features)||[];const S=F.map(f=>{const g=f.geometry,polys=g.type==="Polygon"?[g.coordinates]:g.coordinates;let bb=[180,90,-180,-90];polys.forEach(p=>p[0].forEach(c=>{bb=[Math.min(bb[0],c[0]),Math.min(bb[1],c[1]),Math.max(bb[2],c[0]),Math.max(bb[3],c[1])];}));return{uf:f.properties.uf,polys,bb};});
   if(!BRL.extra&&(MAPA.loc||[]).length){const M=BRL.d.marcas,rx={localiza:/localiza|zarp/,movida:/movida|moover/,kovi:/kovi/,foco:/foco/,app:/carro na m|loko|lm ve/};
-    (MAPA.loc||[]).filter(l=>l.kind==="conc").forEach(l=>{const t=String(l.name).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase(),mi=M.findIndex(b=>rx[b.k]&&rx[b.k].test(t));if(mi>=0)BRL.d.pts.push([l.lng,l.lat,mi,l.name,"São Paulo",1]);});BRL.extra=true;}
+    const V=[];(MAPA.loc||[]).filter(l=>l.kind==="conc").forEach(l=>{const t=String(l.name).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase(),mi=M.findIndex(b=>rx[b.k]&&rx[b.k].test(t));if(mi>=0)V.push([l.lng,l.lat,mi,l.name,"São Paulo",1]);});
+    const perto=(a,b)=>Math.hypot((a[0]-b[0])*111.32*brCos(a[1]),(a[1]-b[1])*110.57)<0.45;
+    BRL.dup=0;BRL.d.pts=BRL.d.pts.filter(p=>{const d=V.some(v=>v[2]===p[2]&&perto(p,v));if(d)BRL.dup++;return!d;}).concat(V);BRL.extra=true;}
   BRL.uf=BRL.d.pts.map(p=>{for(const s of S){if(p[0]<s.bb[0]||p[0]>s.bb[2]||p[1]<s.bb[1]||p[1]>s.bb[3])continue;if(s.polys.some(pg=>mapaInRing([p[0],p[1]],pg[0])))return s.uf;}return null;});}
 const brCos=lat=>Math.cos(lat*Math.PI/180);
 function brGeo(){if(!BRL.d||!BRL.uf)return{type:"FeatureCollection",features:[]};const M=BRL.d.marcas;
@@ -4052,7 +4054,7 @@ function brBoxHTML(){
   return`<h3 style="margin-top:14px">Concorrentes no Brasil <span style="font-weight:500;color:var(--muted);text-transform:none;letter-spacing:0">(${num(ins.length)} locadoras)</span></h3>${rows}${brRadHTML("side")}
   <p class="mp-sn" style="padding:6px 8px 0;line-height:1.5">Locadoras cadastradas no OpenStreetMap, o mapa colaborativo (© colaboradores do OpenStreetMap). É uma amostra: unidade que ninguém cadastrou lá não aparece, então os números não são o total oficial de cada rede. Locadora pequena sem marca reconhecida entra em “Outras locadoras”. O raio é uma estimativa ajustável da distância que o cliente percorre até a unidade. Clique na marca para esconder ou mostrar.</p>`;}
 function brPopup(i){const p=BRL.d&&BRL.d.pts[i];if(!p)return;const b=BRL.d.marcas[p[2]],Y=(MAPA.loc||[]).find(l=>l.kind==="yalla"),dk=Y?mapaKm([p[0],p[1]],[Y.lng,Y.lat]):null;
-  mapaPopup([p[0],p[1]],`<span class="mp-tag" style="color:${b.cor}">${mapaEsc(b.nome)}</span><b>${mapaEsc(p[3])}</b><div class="mp-s">${p[4]?mapaEsc(p[4])+" – ":""}${BRL.uf[i]||""}<br>Raio de atuação estimado: ${MAPA.brR||5} km${dk!=null&&dk<80?"<br>A "+String(dk.toFixed(1)).replace(".",",")+" km da Yalla":""}<br><span style="color:var(--dim)">${p[5]?"Endereço conferido em fonte pública":"Fonte: OpenStreetMap"}</span></div>${mapaGLink([p[0],p[1]])}`);}
+  mapaPopup([p[0],p[1]],`<span class="mp-tag" style="color:${b.cor}">${mapaEsc(b.nome)}</span><b>${mapaEsc(p[3])}</b><div class="mp-s">${p[4]?mapaEsc(p[4])+" – ":""}${BRL.uf[i]||""}<br>Raio de atuação estimado: ${MAPA.brR||5} km${dk!=null&&dk<80?"<br>A "+String(dk.toFixed(1)).replace(".",",")+" km da Yalla":""}<br><span style="color:var(--dim)">${p[5]?"Endereço conferido e posição exata no número":"Fonte: OpenStreetMap, ponto marcado por voluntários. Pode estar desatualizado"}</span></div>${mapaGLink([p[0],p[1]])}`);}
 
 /* ---------- raio de atuação da Yalla ---------- */
 const YR_RINGS=[5,10,20,30];

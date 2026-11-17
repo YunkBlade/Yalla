@@ -1,106 +1,134 @@
 {
- "updated": "16/11/2026",
- "nota": "Para corrigir uma posição ou incluir outra unidade, crie no Google My Maps uma camada com 'Yalla' ou 'Concorrentes' no nome: os pontos dela substituem esta lista.",
+ "updated": "17/11/2026",
+ "nota": "Posições conferidas em 17/11/2026: na capital, pelo lote fiscal da Prefeitura de São Paulo (GeoSampa) com o mesmo número; fora da capital, pelo número da rua ou pelo prédio no OpenStreetMap. Para corrigir uma posição ou incluir outra unidade, crie no Google My Maps uma camada com 'Yalla' ou 'Concorrentes' no nome: os pontos dela substituem esta lista.",
  "yalla": [
   {
    "name": "Yalla Car · sede",
    "addr": "Av. Washington Luís, 6675, Ed. Gate One, Vila Congonhas, São Paulo",
-   "lat": -23.6283,
-   "lng": -46.6636,
-   "approx": true
+   "lat": -23.625501,
+   "lng": -46.6621805,
+   "approx": false,
+   "prec": "lote",
+   "conf": "AV WASHINGTON LUIS, 6675"
   }
  ],
  "concorrentes": [
   {
    "name": "Kovi · loja Jurubatuba",
    "addr": "Av. das Nações Unidas, 21.612, Jurubatuba, São Paulo",
-   "lat": -23.676,
-   "lng": -46.7,
-   "approx": true
+   "lat": -23.6717671,
+   "lng": -46.7043458,
+   "approx": false,
+   "prec": "lote",
+   "conf": "AV DAS NACOES UNIDAS, 21612"
   },
   {
    "name": "Localiza Zarp · Vila Guilherme",
    "addr": "Av. Morvan Dias de Figueiredo, 3177 (Carrefour), São Paulo",
-   "lat": -23.5236103,
-   "lng": -46.5998152,
-   "approx": false
+   "lat": -23.5221695,
+   "lng": -46.5991408,
+   "approx": false,
+   "prec": "lote",
+   "conf": "AV MORVAN DIAS DE FIGUEIREDO, 3177"
   },
   {
    "name": "Localiza Zarp · Barra Funda",
    "addr": "Av. Francisco Matarazzo, 892, Água Branca, São Paulo",
-   "lat": -23.5276246,
-   "lng": -46.6711716,
-   "approx": false
+   "lat": -23.5270147,
+   "lng": -46.6714125,
+   "approx": false,
+   "prec": "lote",
+   "conf": "AV FRANCISCO MATARAZZO, 892"
   },
   {
    "name": "Localiza Zarp · Aricanduva",
    "addr": "Av. Rio das Pedras, 555 (Carrefour), São Paulo",
-   "lat": -23.5595569,
-   "lng": -46.5159273,
-   "approx": false
+   "lat": -23.5603088,
+   "lng": -46.516391,
+   "approx": false,
+   "prec": "lote",
+   "conf": "AV RIO DAS PEDRAS, 555"
   },
   {
    "name": "Localiza Zarp · Giovanni Gronchi",
    "addr": "Av. Alberto Augusto Alves, 50 (Carrefour), Vila Andrade, São Paulo",
-   "lat": -23.6420225,
-   "lng": -46.7344646,
-   "approx": false
+   "lat": -23.6417907,
+   "lng": -46.7342317,
+   "approx": false,
+   "prec": "lote",
+   "conf": "AV ALBERTO AUGUSTO ALVES, 50"
   },
   {
    "name": "Localiza Zarp · Saúde (Imigrantes)",
    "addr": "R. Ribeiro Lacerda, 940, Bosque da Saúde, São Paulo",
-   "lat": -23.6201413,
-   "lng": -46.6226756,
-   "approx": true
+   "lat": -23.6178765,
+   "lng": -46.6265144,
+   "approx": false,
+   "prec": "lote",
+   "conf": "R RIBEIRO LACERDA, 940"
   },
   {
    "name": "Localiza Zarp · São Bernardo",
    "addr": "Av. Senador Vergueiro, 2000 (Carrefour), São Bernardo do Campo",
-   "lat": -23.6763167,
-   "lng": -46.5546857,
-   "approx": false
+   "lat": -23.6782244,
+   "lng": -46.555292,
+   "approx": false,
+   "prec": "numero",
+   "conf": "Avenida Senador Vergueiro, 2000"
   },
   {
    "name": "Localiza Zarp · Osasco",
    "addr": "Av. dos Autonomistas, 1542, Vila Yara, Osasco",
-   "lat": -23.5482038,
-   "lng": -46.7604357,
-   "approx": true
+   "lat": -23.5373363,
+   "lng": -46.768383,
+   "approx": false,
+   "prec": "predio",
+   "conf": "Carrefour Osasco, Av. dos Autonomistas"
   },
   {
    "name": "Localiza Zarp · São Vicente",
    "addr": "Av. Prefeito José Monteiro, 1045, São Vicente",
-   "lat": -23.9658375,
-   "lng": -46.3704198,
-   "approx": true
+   "lat": -23.9671736,
+   "lng": -46.3699192,
+   "approx": false,
+   "prec": "predio",
+   "conf": "Carrefour São Vicente, Av. Prefeito José Monteiro"
   },
   {
    "name": "Grupo Carro na Mão",
    "addr": "Rua Leocádia Cintra, 75, Mooca, São Paulo",
-   "lat": -23.556848,
-   "lng": -46.6027689,
-   "approx": false
+   "lat": -23.5570194,
+   "lng": -46.6027116,
+   "approx": false,
+   "prec": "numero",
+   "conf": "Rua Leocádia Cintra, 75"
   },
   {
    "name": "Moover (Movida) · Vila Leopoldina",
    "addr": "Av. Dr. Gastão Vidigal, 1087, Vila Leopoldina, São Paulo",
-   "lat": -23.5344743,
-   "lng": -46.7342782,
-   "approx": true
+   "lat": -23.5277178,
+   "lng": -46.7392814,
+   "approx": false,
+   "prec": "lote",
+   "conf": "AV DR GASTAO VIDIGAL, 1087"
   },
   {
    "name": "Foco · Jardim Paulista",
    "addr": "Av. Nove de Julho, 3597, Jardim Paulista, São Paulo",
    "lat": -23.5707865,
    "lng": -46.6624367,
-   "approx": false
+   "approx": false,
+   "prec": "numero",
+   "conf": "Avenida Nove de Julho, 3597"
   },
   {
    "name": "Foco · Vila Congonhas",
    "addr": "R. Baronesa de Bela Vista, 695, Vila Congonhas, São Paulo",
-   "lat": -23.6251487,
-   "lng": -46.662472,
-   "approx": true
+   "lat": -23.6239641,
+   "lng": -46.6624359,
+   "approx": false,
+   "prec": "lote",
+   "conf": "R BRA DE BELA VISTA, 695"
   }
  ],
  "semEndereco": [
@@ -113,5 +141,10 @@
   "Alemão Locadora",
   "Black Locadora",
   "957 Locação (OLX)"
- ]
+ ],
+ "fontes": {
+  "lote": "Lote fiscal da Prefeitura de São Paulo (GeoSampa) com o mesmo número de porta",
+  "numero": "Número da rua no OpenStreetMap",
+  "predio": "Prédio do Carrefour no OpenStreetMap (a loja fica dentro do hipermercado)"
+ }
 }
