@@ -19,7 +19,7 @@ function partes(q) {
   const rua = m[1].trim(), num = String(+m[2].replace(/\./g, "")), resto = m[3] || "";
   return { rua, num, resto, cidadeSP: !/(osasco|s[aã]o bernardo|santo andr[eé]|s[aã]o caetano|guarulhos|diadema|barueri|mau[aá]|s[aã]o vicente|santos|campinas|carapicu[ií]ba|tabo[aã]o|cotia|mogi|suzano|embu|itapecerica)/i.test(resto) };
 }
-const ABR = { DOUTOR: "DR", DOUTORA: "DRA", PROFESSOR: "PROF", PROFESSORA: "PROFA", PREFEITO: "PREF", ENGENHEIRO: "ENG", CORONEL: "CEL", GENERAL: "GAL", GEN: "GAL", SENADOR: "SEN", DEPUTADO: "DEP", PADRE: "PE", PRESIDENTE: "PRES", BRIGADEIRO: "BRIG", MARECHAL: "MAL", CONSELHEIRO: "CONS", COMENDADOR: "COM", DESEMBARGADOR: "DES", MINISTRO: "MIN", GOVERNADOR: "GOV", MONSENHOR: "MONS", CAPITAO: "CAP", TENENTE: "TEN", MAJOR: "MAJ", VEREADOR: "VER", VISCONDE: "VISC", AVENIDA: "AV", RUA: "R", ALAMEDA: "AL", PRACA: "PC", ESTRADA: "EST", RODOVIA: "ROD", TRAVESSA: "TV", LARGO: "LG", VIADUTO: "VD" };
+const ABR = { DOUTOR: "DR", DOUTORA: "DRA", PROFESSOR: "PROF", PROFESSORA: "PROFA", PREFEITO: "PREF", ENGENHEIRO: "ENG", CORONEL: "CEL", GENERAL: "GAL", GEN: "GAL", SENADOR: "SEN", DEPUTADO: "DEP", PADRE: "PE", PRESIDENTE: "PRES", BRIGADEIRO: "BRIG", MARECHAL: "MAL", CONSELHEIRO: "CONS", COMENDADOR: "COM", DESEMBARGADOR: "DES", MINISTRO: "MIN", GOVERNADOR: "GOV", MONSENHOR: "MONS", CAPITAO: "CAP", TENENTE: "TEN", MAJOR: "MAJ", VEREADOR: "VER", VISCONDE: "VISC", BARONESA: "BRA", BARAO: "BR", AVENIDA: "AV", RUA: "R", ALAMEDA: "AL", PRACA: "PC", ESTRADA: "EST", RODOVIA: "ROD", TRAVESSA: "TV", LARGO: "LG", VIADUTO: "VD" };
 const ab = x => ABR[x] || x;
 function palavras(rua) {
   const w = sem(rua).split(" ").filter(Boolean); let tipo = "";
@@ -53,20 +53,22 @@ async function lotes(filtro, max) {
   const url = `${W}?service=WFS&version=1.0.0&request=GetFeature&typeName=geoportal:lote_cidadao&outputFormat=application/json&srsName=EPSG:4326&maxFeatures=${max || 50}&CQL_FILTER=${encodeURIComponent(filtro)}`;
   const j = await getJ(url, 15000); return (j && j.features) || [];
 }
-async function geosampa(p, ref) {
+async function geosampa(p, ref, erros) {
   const num = +p.num, info = palavras(p.rua);
+  const tenta = async (f, max) => { try { return await lotes(f, max); } catch (e) { erros.push("geosampa: " + e.message.slice(0, 80)); return []; } };
   for (const pat of info.pads) {
-    const f = await lotes(`nm_logradouro_completo LIKE '${pat.replace(/'/g, "''")}' AND cd_numero_porta='${p.num}'`, 40);
+    const f = await tenta(`nm_logradouro_completo LIKE '${pat.replace(/'/g, "''")}' AND cd_numero_porta='${p.num}'`, 40);
     const b = f.length && melhor(f, info, ref, null);
     if (b && (!ref || b.d < 6)) return { c: b.c, precisao: "lote", detalhe: `${b.x.properties.nm_logradouro_completo}, ${p.num}`, bairro: b.x.properties.tx_complemento_endereco || "" };
   }
-  const pref = String(num).length > 2 ? String(num).slice(0, -2) : "";
-  for (const pat of info.pads) {
-    const f = await lotes(`nm_logradouro_completo LIKE '${pat.replace(/'/g, "''")}'` + (pref ? ` AND cd_numero_porta LIKE '${pref}%'` : ""), 500);
-    const ok = f.filter(x => parseInt(x.properties.cd_numero_porta, 10) > 0);
-    const b = ok.length && melhor(ok, info, ref, num);
-    if (b && Math.abs(b.n - num) <= 120 && (!ref || b.d < 6))
-      return { c: b.c, precisao: "lote_proximo", detalhe: `${b.x.properties.nm_logradouro_completo}, ${b.n} (o número mais perto do ${p.num} no cadastro)`, bairro: b.x.properties.tx_complemento_endereco || "" };
+  for (const faixa of [60, 240]) {
+    const nums = []; for (let n = Math.max(1, num - faixa); n <= num + faixa; n++) if (n !== num && (faixa === 60 || n % 2 === num % 2)) nums.push("'" + n + "'");
+    for (const pat of info.pads) {
+      const f = await tenta(`nm_logradouro_completo LIKE '${pat.replace(/'/g, "''")}' AND cd_numero_porta IN (${nums.join(",")})`, 300);
+      const b = f.length && melhor(f, info, ref, num);
+      if (b && (!ref || b.d < 6))
+        return { c: b.c, precisao: "lote_proximo", detalhe: `${b.x.properties.nm_logradouro_completo}, ${b.n} (o número mais perto do ${p.num} no cadastro)`, bairro: b.x.properties.tx_complemento_endereco || "" };
+    }
   }
   return null;
 }
@@ -87,7 +89,7 @@ module.exports = async (req, res) => {
   if (q.length < 5) { res.statusCode = 400; res.end(JSON.stringify({ error: "endereço curto demais" })); return; }
   const p = partes(q); let r = null; const erros = [];
   let ph = null; try { ph = await photon(q, p); } catch (e) { erros.push("photon: " + e.message); }
-  try { if (p && p.cidadeSP) { r = await geosampa(p, ph && ph.precisao === "rua" ? ph.c : (ph && ph.c)); if (r) r.fonte = "Prefeitura de São Paulo (GeoSampa, lote fiscal)"; } } catch (e) { erros.push("geosampa: " + e.message); }
+  try { if (p && p.cidadeSP) { r = await geosampa(p, ph && ph.c, erros); if (r) r.fonte = "Prefeitura de São Paulo (GeoSampa, lote fiscal)"; } } catch (e) { erros.push("geosampa: " + e.message); }
   if (!r && ph) { r = ph; r.fonte = "OpenStreetMap (Photon)"; }
   if (!r) { res.setHeader("Cache-Control", "no-store"); res.statusCode = erros.length ? 502 : 404; res.end(JSON.stringify({ error: "endereço não encontrado", detalhe: erros })); return; }
   res.setHeader("Cache-Control", "public, s-maxage=604800, stale-while-revalidate=2592000");
