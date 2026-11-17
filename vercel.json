@@ -1,7 +1,22 @@
 {
   "cleanUrls": true,
-  "functions": { "api/risco.js": { "maxDuration": 45 } },
+  "functions": {
+    "api/risco.js": {
+      "maxDuration": 45
+    },
+    "api/locadoras.js": {
+      "maxDuration": 60
+    }
+  },
   "headers": [
-    { "source": "/(.*)", "headers": [ { "key": "X-Robots-Tag", "value": "noindex, nofollow" } ] }
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    }
   ]
 }
