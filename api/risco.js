@@ -68,6 +68,7 @@ module.exports = async (req, res) => {
     const ord = [...areas].sort((a, b) => b.dens - a.dens); ord.forEach((a, i) => { a.rank = i + 1; a.q = +(1 - i / (ord.length - 1)).toFixed(3); });
     res.setHeader("Cache-Control", "public, s-maxage=43200, stale-while-revalidate=1209600");
     res.statusCode = 200;
+    if ((req.query || {}).resumo) { res.end(JSON.stringify({ ano, meses: pub, ate: MES[pub - 1], falhas: fail, n: areas.length, formas: Object.keys(shapes).length, bytes: JSON.stringify(areas).length, top: ord.slice(0, 8).map(a => ({ n: a.n, name: a.name, rv: a.rv, fv: a.fv, media: a.media, km2: a.km2, dens: a.dens, pts: a.polys.reduce((t, p) => t + p[0].length, 0) })), fim: ord.slice(-2).map(a => ({ n: a.n, name: a.name, media: a.media, dens: a.dens })) })); return; }
     res.end(JSON.stringify({ fonte: "SSP-SP (números) e GeoSampa (contornos das delegacias)", ano, meses: pub, ate: MES[pub - 1], recente: last, falhas: fail, gerado: now.toISOString(), areas }));
   } catch (e) {
     res.setHeader("Cache-Control", "no-store"); res.statusCode = 502; res.end(JSON.stringify({ error: e.name === "AbortError" ? "tempo esgotado" : e.message }));
