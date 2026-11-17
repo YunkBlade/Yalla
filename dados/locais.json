@@ -1,13 +1,117 @@
 {
-  "updated": "16/11/2026",
-  "nota": "Para corrigir uma posição ou incluir outra unidade, crie no Google My Maps uma camada com 'Yalla' ou 'Concorrentes' no nome: os pontos dela substituem esta lista.",
-  "yalla": [
-    {"name": "Yalla Car · sede", "addr": "Av. Washington Luís, 6675, Ed. Gate One, Vila Congonhas, São Paulo", "lat": -23.6283, "lng": -46.6636, "approx": true}
-  ],
-  "concorrentes": [
-    {"name": "Grupo Carro na Mão", "addr": "Rua Leocádia Cintra, 75, Mooca, São Paulo", "lat": -23.556848, "lng": -46.6027689, "approx": false},
-    {"name": "Foco · Jardim Paulista", "addr": "Av. Nove de Julho, 3597, Jardim Paulista, São Paulo", "lat": -23.5707865, "lng": -46.6624367, "approx": false},
-    {"name": "Foco · Vila Congonhas", "addr": "R. Baronesa de Bela Vista, 695, Vila Congonhas, São Paulo", "lat": -23.6251487, "lng": -46.662472, "approx": true},
-    {"name": "Moover (Movida) · Vila Leopoldina", "addr": "Av. Dr. Gastão Vidigal, 1087, Vila Leopoldina, São Paulo", "lat": -23.5344743, "lng": -46.7342782, "approx": true}
-  ]
+ "updated": "16/11/2026",
+ "nota": "Para corrigir uma posição ou incluir outra unidade, crie no Google My Maps uma camada com 'Yalla' ou 'Concorrentes' no nome: os pontos dela substituem esta lista.",
+ "yalla": [
+  {
+   "name": "Yalla Car · sede",
+   "addr": "Av. Washington Luís, 6675, Ed. Gate One, Vila Congonhas, São Paulo",
+   "lat": -23.6283,
+   "lng": -46.6636,
+   "approx": true
+  }
+ ],
+ "concorrentes": [
+  {
+   "name": "Kovi · loja Jurubatuba",
+   "addr": "Av. das Nações Unidas, 21.612, Jurubatuba, São Paulo",
+   "lat": -23.676,
+   "lng": -46.7,
+   "approx": true
+  },
+  {
+   "name": "Localiza Zarp · Vila Guilherme",
+   "addr": "Av. Morvan Dias de Figueiredo, 3177 (Carrefour), São Paulo",
+   "lat": -23.5236103,
+   "lng": -46.5998152,
+   "approx": false
+  },
+  {
+   "name": "Localiza Zarp · Barra Funda",
+   "addr": "Av. Francisco Matarazzo, 892, Água Branca, São Paulo",
+   "lat": -23.5276246,
+   "lng": -46.6711716,
+   "approx": false
+  },
+  {
+   "name": "Localiza Zarp · Aricanduva",
+   "addr": "Av. Rio das Pedras, 555 (Carrefour), São Paulo",
+   "lat": -23.5595569,
+   "lng": -46.5159273,
+   "approx": false
+  },
+  {
+   "name": "Localiza Zarp · Giovanni Gronchi",
+   "addr": "Av. Alberto Augusto Alves, 50 (Carrefour), Vila Andrade, São Paulo",
+   "lat": -23.6420225,
+   "lng": -46.7344646,
+   "approx": false
+  },
+  {
+   "name": "Localiza Zarp · Saúde (Imigrantes)",
+   "addr": "R. Ribeiro Lacerda, 940, Bosque da Saúde, São Paulo",
+   "lat": -23.6201413,
+   "lng": -46.6226756,
+   "approx": true
+  },
+  {
+   "name": "Localiza Zarp · São Bernardo",
+   "addr": "Av. Senador Vergueiro, 2000 (Carrefour), São Bernardo do Campo",
+   "lat": -23.6763167,
+   "lng": -46.5546857,
+   "approx": false
+  },
+  {
+   "name": "Localiza Zarp · Osasco",
+   "addr": "Av. dos Autonomistas, 1542, Vila Yara, Osasco",
+   "lat": -23.5482038,
+   "lng": -46.7604357,
+   "approx": true
+  },
+  {
+   "name": "Localiza Zarp · São Vicente",
+   "addr": "Av. Prefeito José Monteiro, 1045, São Vicente",
+   "lat": -23.9658375,
+   "lng": -46.3704198,
+   "approx": true
+  },
+  {
+   "name": "Grupo Carro na Mão",
+   "addr": "Rua Leocádia Cintra, 75, Mooca, São Paulo",
+   "lat": -23.556848,
+   "lng": -46.6027689,
+   "approx": false
+  },
+  {
+   "name": "Moover (Movida) · Vila Leopoldina",
+   "addr": "Av. Dr. Gastão Vidigal, 1087, Vila Leopoldina, São Paulo",
+   "lat": -23.5344743,
+   "lng": -46.7342782,
+   "approx": true
+  },
+  {
+   "name": "Foco · Jardim Paulista",
+   "addr": "Av. Nove de Julho, 3597, Jardim Paulista, São Paulo",
+   "lat": -23.5707865,
+   "lng": -46.6624367,
+   "approx": false
+  },
+  {
+   "name": "Foco · Vila Congonhas",
+   "addr": "R. Baronesa de Bela Vista, 695, Vila Congonhas, São Paulo",
+   "lat": -23.6251487,
+   "lng": -46.662472,
+   "approx": true
+  }
+ ],
+ "semEndereco": [
+  "Loko Paka",
+  "LM Veículos para Apps",
+  "Urban Locação",
+  "Sampa Car",
+  "Lumina Mobi",
+  "Cabral Locações",
+  "Alemão Locadora",
+  "Black Locadora",
+  "957 Locação (OLX)"
+ ]
 }

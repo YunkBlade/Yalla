@@ -1,86 +1,439 @@
 {
-  "updated": "16/11/2026",
-  "nota": "Pesquisa em fontes públicas (imprensa, IBGE, sites oficiais de Uber, 99 e inDrive). Regras e taxas mudam por cidade e sem aviso: confirme no app do motorista antes de decidir.",
-  "panorama": {
-    "kpis": [
-      {"l": "Renda média mensal do motorista de app", "v": "R$ 2.873", "s": "IBGE (PNAD), dados de 2025 · 2,4% acima dos demais motoristas", "u": "https://diariodotransporte.com.br/2026/09/04/renda-real-de-motoristas-de-aplicativos-sobe-so-1-em-tres-anos-e-dos-demais-trabalhadores-avanca-10-motoristas-de-onibus-acumulam-uber-e-99-e-setor-alerta-para-esgotamento-acidentes-e-riscos-juridic/amp/"},
-      {"l": "Jornada a mais por semana", "v": "+5,5 h", "s": "em relação aos motoristas fora dos apps (IBGE)", "u": "https://www.correio24horas.com.br/brasil/profissionais-de-app-trabalham-54-horas-a-mais-que-outros-trabalhadores-do-setor-privado-0926"},
-      {"l": "Custo mensal com carro alugado", "v": "R$ 5.706", "s": "levantamento do TST · carro próprio: R$ 5.566", "u": "https://portaldeprefeitura.com.br/trends/?p=805"},
-      {"l": "Pessoas trabalhando por apps", "v": "1,96 milhão", "s": "em 2025, segundo a PNAD Contínua (todas as plataformas)", "u": "https://tribunadoplanalto.com.br/?p=117345"}
+ "updated": "16/11/2026",
+ "nota": "Pesquisa em fontes públicas (imprensa, IBGE, sites oficiais de Uber, 99 e inDrive). Regras e taxas mudam por cidade e sem aviso: confirme no app do motorista antes de decidir.",
+ "panorama": {
+  "kpis": [
+   {
+    "l": "Renda média mensal do motorista de app",
+    "v": "R$ 2.873",
+    "s": "IBGE (PNAD), dados de 2025 · 2,4% acima dos demais motoristas",
+    "u": "https://diariodotransporte.com.br/2026/09/04/renda-real-de-motoristas-de-aplicativos-sobe-so-1-em-tres-anos-e-dos-demais-trabalhadores-avanca-10-motoristas-de-onibus-acumulam-uber-e-99-e-setor-alerta-para-esgotamento-acidentes-e-riscos-juridic/amp/"
+   },
+   {
+    "l": "Jornada a mais por semana",
+    "v": "+5,5 h",
+    "s": "em relação aos motoristas fora dos apps (IBGE)",
+    "u": "https://www.correio24horas.com.br/brasil/profissionais-de-app-trabalham-54-horas-a-mais-que-outros-trabalhadores-do-setor-privado-0926"
+   },
+   {
+    "l": "Custo mensal com carro alugado",
+    "v": "R$ 5.706",
+    "s": "levantamento do TST · carro próprio: R$ 5.566",
+    "u": "https://portaldeprefeitura.com.br/trends/?p=805"
+   },
+   {
+    "l": "Pessoas trabalhando por apps",
+    "v": "1,96 milhão",
+    "s": "em 2025, segundo a PNAD Contínua (todas as plataformas)",
+    "u": "https://tribunadoplanalto.com.br/?p=117345"
+   }
+  ],
+  "pontos": [
+   {
+    "t": "A renda real de quem trabalha por plataforma ficou praticamente parada entre 2022 e 2025 (de R$ 3.115 para R$ 3.147), e motoristas de carro não tiveram ganho real no período.",
+    "f": "Diário do Transporte / IBGE",
+    "u": "https://diariodotransporte.com.br/2026/09/04/renda-real-de-motoristas-de-aplicativos-sobe-so-1-em-tres-anos-e-dos-demais-trabalhadores-avanca-10-motoristas-de-onibus-acumulam-uber-e-99-e-setor-alerta-para-esgotamento-acidentes-e-riscos-juridic/amp/"
+   },
+   {
+    "t": "80,2% dos motoristas dizem que o valor da corrida é definido totalmente pela plataforma.",
+    "f": "Money Times / IBGE",
+    "u": "https://www.moneytimes.com.br/ibge-trabalhadores-motoristas-aplicativo-rsgp/"
+   },
+   {
+    "t": "Perfil (Amobitec/Cebrap): 95% homens, idade média de 39 anos e 60% com ensino médio completo.",
+    "f": "Motor Agora",
+    "u": "https://www.motoragora.com.br/?p=103089"
+   },
+   {
+    "t": "53% dos motoristas contribuem com o INSS; o número de motoristas de app cresceu 35% em dois anos.",
+    "f": "CartaCapital",
+    "u": "https://www.cartacapital.com.br/?p=523563"
+   },
+   {
+    "t": "O ganho por hora cai fora das regiões metropolitanas: R$ 18,49 na capital do Rio contra R$ 12,24 em cidades do interior do estado.",
+    "f": "Times Brasil",
+    "u": "https://timesbrasil.com.br/brasil/motoristas-de-aplicativo-recebem-ate-r-669-a-menos-por-hora-trabalhada-fora-das-regioes-metropolitanas-revela-levantamento/"
+   }
+  ],
+  "leitura": "Para a Yalla: o motorista trabalha mais horas para manter a mesma renda e o aluguel é o maior custo fixo dele. Preço semanal, km incluído e consumo do carro pesam mais na decisão do que a marca. O crédito federal para compra de carro (Move Brasil) é o principal risco novo para o aluguel."
+ },
+ "plataformas": [
+  {
+   "nome": "Uber",
+   "cor": "#EEF1F7",
+   "linhas": [
+    [
+     "Taxa cobrada do motorista",
+     "Variável por corrida. A empresa diz mirar perto de 25%, mas pode chegar a cerca de 40% em algumas viagens."
     ],
-    "pontos": [
-      {"t": "A renda real de quem trabalha por plataforma ficou praticamente parada entre 2022 e 2025 (de R$ 3.115 para R$ 3.147), e motoristas de carro não tiveram ganho real no período.", "f": "Diário do Transporte / IBGE", "u": "https://diariodotransporte.com.br/2026/09/04/renda-real-de-motoristas-de-aplicativos-sobe-so-1-em-tres-anos-e-dos-demais-trabalhadores-avanca-10-motoristas-de-onibus-acumulam-uber-e-99-e-setor-alerta-para-esgotamento-acidentes-e-riscos-juridic/amp/"},
-      {"t": "80,2% dos motoristas dizem que o valor da corrida é definido totalmente pela plataforma.", "f": "Money Times / IBGE", "u": "https://www.moneytimes.com.br/ibge-trabalhadores-motoristas-aplicativo-rsgp/"},
-      {"t": "Perfil (Amobitec/Cebrap): 95% homens, idade média de 39 anos e 60% com ensino médio completo.", "f": "Motor Agora", "u": "https://www.motoragora.com.br/?p=103089"},
-      {"t": "53% dos motoristas contribuem com o INSS; o número de motoristas de app cresceu 35% em dois anos.", "f": "CartaCapital", "u": "https://www.cartacapital.com.br/?p=523563"},
-      {"t": "O ganho por hora cai fora das regiões metropolitanas: R$ 18,49 na capital do Rio contra R$ 12,24 em cidades do interior do estado.", "f": "Times Brasil", "u": "https://timesbrasil.com.br/brasil/motoristas-de-aplicativo-recebem-ate-r-669-a-menos-por-hora-trabalhada-fora-das-regioes-metropolitanas-revela-levantamento/"}
+    [
+     "Como o preço é definido",
+     "Pelo app. O ganho do motorista e o preço do passageiro são calculados separadamente."
     ],
-    "leitura": "Para a Yalla: o motorista trabalha mais horas para manter a mesma renda e o aluguel é o maior custo fixo dele. Preço semanal, km incluído e consumo do carro pesam mais na decisão do que a marca. O crédito federal para compra de carro (Move Brasil) é o principal risco novo para o aluguel."
+    [
+     "Novidade de taxa",
+     "Passe para Motoristas: paga um valor fixo e fica sem taxa por 24/72 h ou até um teto de ganhos. Em teste desde maio/2026 em 12 cidades (São Paulo não está na lista)."
+    ],
+    [
+     "Categorias de carro",
+     "UberX, Comfort, Black (além de Moto e Táxi)."
+    ],
+    [
+     "Aluguel de carro",
+     "Página de parcerias com locadoras para motoristas."
+    ]
+   ],
+   "fontes": [
+    [
+     "Diário do Comércio",
+     "https://diariodocomercio.com.br/mix/uber-muda-algoritmo-e-comeca-a-pagar-menos-para-motoristas-revela-estudo/"
+    ],
+    [
+     "Diário do Nordeste",
+     "https://diariodonordeste.verdesmares.com.br/ultima-hora/automovel/uber-inicia-passe-para-motoristas-em-12-cidades-brasileiras-nesta-segunda-feira-25-1.3766446"
+    ],
+    [
+     "Uber",
+     "https://www.uber.com/pt-BR/drive/vehicle-solutions/"
+    ]
+   ]
   },
-  "plataformas": [
-    {"nome": "Uber", "cor": "#EEF1F7", "linhas": [
-      ["Taxa cobrada do motorista", "Variável por corrida. A empresa diz mirar perto de 25%, mas pode chegar a cerca de 40% em algumas viagens."],
-      ["Como o preço é definido", "Pelo app. O ganho do motorista e o preço do passageiro são calculados separadamente."],
-      ["Novidade de taxa", "Passe para Motoristas: paga um valor fixo e fica sem taxa por 24/72 h ou até um teto de ganhos. Em teste desde maio/2026 em 12 cidades (São Paulo não está na lista)."],
-      ["Categorias de carro", "UberX, Comfort, Black (além de Moto e Táxi)."],
-      ["Aluguel de carro", "Página de parcerias com locadoras para motoristas."]
-    ], "fontes": [["Diário do Comércio", "https://diariodocomercio.com.br/mix/uber-muda-algoritmo-e-comeca-a-pagar-menos-para-motoristas-revela-estudo/"], ["Diário do Nordeste", "https://diariodonordeste.verdesmares.com.br/ultima-hora/automovel/uber-inicia-passe-para-motoristas-em-12-cidades-brasileiras-nesta-segunda-feira-25-1.3766446"], ["Uber", "https://www.uber.com/pt-BR/drive/vehicle-solutions/"]]},
-    {"nome": "99", "cor": "#F2A314", "linhas": [
-      ["Taxa cobrada do motorista", "Taxa Garantida de no máximo 19,99% por semana (com pelo menos 10 corridas na semana; informação de 2023, confirmar no app)."],
-      ["Como o preço é definido", "Pelo app; a categoria 99Negocia permite negociar o valor com o passageiro."],
-      ["Novidade de taxa", "Pacote Taxa Zero: o motorista compra um pacote e roda com 0% de taxa. Vale para 99Pop, Pop Expresso, 99Negocia, 99Plus e electric-Pro, em 20 cidades selecionadas."],
-      ["Categorias de carro", "99Pop, 99Plus, 99Comfort, 99Black, 99Negocia, electric-Pro."],
-      ["Aluguel de carro", "99Loc (marketplace de locação), locadoras parceiras e programa de elétricos com a Seteloc."]
-    ], "fontes": [["99 (Taxa Zero)", "https://99app.com/motorista/taxa-zero-pacote/"], ["Diário do Nordeste", "https://diariodonordeste.verdesmares.com.br/ultima-hora/automovel/99-segue-uber-e-anuncia-pacote-que-zera-cobranca-de-tarifa-a-motoristas-veja-cidades-1.3769399"], ["AutoPapo", "https://autopapo.com.br/curta/motoristas99-valor-exato-corrida/"]]},
-    {"nome": "inDrive", "cor": "#A7E92F", "linhas": [
-      ["Taxa cobrada do motorista", "Não confirmada nesta pesquisa. A empresa se posiciona como a de menor comissão; conferir no app."],
-      ["Como o preço é definido", "Negociado entre passageiro e motorista. Também lançou corridas com preço definido pelo app."],
-      ["Novidade", "Categoria Comfort com preço negociado e inDrive.Money (empréstimo de até R$ 3.000 para motoristas)."],
-      ["Categorias de carro", "Sem categoria premium tipo Black. Entrada simples: carro em bom estado, até cerca de 10 anos, 4 portas, 5 lugares e ar-condicionado."],
-      ["Presença", "Mais de 200 localidades, nos 27 estados."]
-    ], "fontes": [["Diário de Pernambuco", "https://diariodepernambuco.com.br/dpmais/quais-sao-os-carros-permitidos-para-operar-nos-aplicativos-rivais-da-uber/"], ["Tecnoblog", "https://tecnoblog.net/noticias/concorrente-da-uber-e-da-99-lanca-categoria-comfort-com-preco-negociado/"], ["PR Newswire", "https://www.prnewswire.com/br/comunicados-para-a-imprensa/indrive-lanca-campanha-nacional-com-joelma-para-reforcar-modelo-de-mobilidade-com-preco-justo-e-liberdade-de-escolha-302738522.html"]]}
-  ],
-  "noticias": [
-    {"d": "set/2026", "app": "Mercado", "t": "IBGE: motorista de app trabalha 5,5 horas a mais por semana para ganhar quase o mesmo que os demais", "imp": "Pressão de renda: preço do aluguel e consumo do carro viram argumento de venda.", "f": "Diário do Transporte", "u": "https://diariodotransporte.com.br/2026/09/04/renda-real-de-motoristas-de-aplicativos-sobe-so-1-em-tres-anos-e-dos-demais-trabalhadores-avanca-10-motoristas-de-onibus-acumulam-uber-e-99-e-setor-alerta-para-esgotamento-acidentes-e-riscos-juridic/amp/"},
-    {"d": "ago/2026", "app": "Uber", "t": "Uber é processada no Brasil por causa do Passe para Motoristas; caso ainda depende da Justiça", "imp": "O modelo de assinatura pode mudar ou não chegar a São Paulo.", "f": "O Povo", "u": "https://opovo.com.br/trends/?p=23204"},
-    {"d": "ago–set/2026", "app": "Uber", "t": "Uber testa cobrar do motorista por corrida recusada na Suécia e na Suíça; sem previsão para o Brasil", "imp": "Só acompanhar.", "f": "Portal do Trânsito", "u": "https://www.portaldotransito.com.br/noticias/mobilidade-e-tecnologia/uber-testa-cobranca-de-motoristas-por-corridas-recusadas-na-europa/"},
-    {"d": "2026", "app": "99", "t": "99 lança Pacote Taxa Zero em 20 cidades, na esteira do passe da Uber", "imp": "Disputa por motorista via taxa: bom momento para campanhas falando de ganho líquido.", "f": "Diário do Nordeste", "u": "https://diariodonordeste.verdesmares.com.br/ultima-hora/automovel/99-segue-uber-e-anuncia-pacote-que-zera-cobranca-de-tarifa-a-motoristas-veja-cidades-1.3769399"},
-    {"d": "mai/2026", "app": "99", "t": "99 e Seteloc vão alugar 400 carros elétricos para motoristas em 7 cidades, começando por Brasília", "imp": "Concorrência direta para Dolphin e D1 da Yalla quando chegar a São Paulo.", "f": "99 Newsroom", "u": "https://99app.com/newsroom/99-e-seteloc-disponibilizam-400-veiculos-eletricos-para-locacao-de-motoristas-parceiros-em-7-cidades-brasileiras/"},
-    {"d": "jun/2026", "app": "Mercado", "t": "Começa o financiamento federal de até R$ 150 mil para motoristas de Uber e 99 comprarem carro", "imp": "Risco para locação: analistas do BBA apontam migração do aluguel para carro próprio.", "f": "Exame", "u": "https://exame.com/arquivo/99taxis/"},
-    {"d": "jan/2026", "app": "Uber", "t": "Novas regras do Uber Black e Comfort entram em vigor; novas mudanças anunciadas para janeiro de 2027", "imp": "Afeta Virtus, Nivus, Polo e Argo da frota. Ver a aba 99 e Uber.", "f": "Diário do Nordeste", "u": "https://diariodonordeste.verdesmares.com.br/ultima-hora/automovel/confira-lista-de-carros-aceitos-no-uber-black-em-2026-1.3731430"},
-    {"d": "2026", "app": "inDrive", "t": "inDrive lança categoria Comfort no Brasil e corridas com preço definido pelo app", "imp": "Terceira opção de renda para o motorista Yalla com carro Comfort.", "f": "Tecnoblog", "u": "https://tecnoblog.net/noticias/concorrente-da-uber-e-da-99-lanca-categoria-comfort-com-preco-negociado/"},
-    {"d": "em tramitação", "app": "Regulação", "t": "PLP 12/2024, que regulamenta o trabalho de motoristas de app, segue sem votação na Câmara", "imp": "Pode mudar remuneração mínima e INSS. Acompanhar.", "f": "Senado Notícias", "u": "https://www12.senado.leg.br/noticias/infomaterias/2025/05/sem-consenso-regulacao-de-motoristas-de-aplicativo-e-desafio-para-o-congresso"}
-  ],
-  "requisitos": {
-    "categorias": [
-      {"app": "Uber", "cat": "UberX", "regra": "4 portas, 5 lugares e ar-condicionado. Em São Paulo a idade máxima é de 10 anos (em 2026, carro 2015 ou mais antigo não recebe viagens). Não aceita carro adesivado, placa vermelha nem van; picape precisa de capota.", "f": "Uber", "u": "https://www.uber.com/br/pt-br/drive/sao-paulo"},
-      {"app": "Uber", "cat": "Comfort", "regra": "Modelo da lista da Uber + pelo menos 100 viagens. Em São Paulo: Etios Sedan, Voyage, Prisma, Logan e Cobalt a partir de 2019; Polo e Argo a partir de 2023.", "f": "Seu Crédito Digital", "u": "https://seucreditodigital.com.br/novas-regras-uber-black-comfort-em-2026/"},
-      {"app": "Uber", "cat": "Black", "regra": "Em São Paulo (2026): Virtus a partir de 2026; Duster, Nivus e City a partir de 2023; demais modelos da lista a partir de 2019. Exige 100 viagens, nota 4,85 e cores preto, cinza, prata, branco, azul-marinho, marrom ou chumbo.", "f": "Diário do Nordeste", "u": "https://diariodonordeste.verdesmares.com.br/ultima-hora/automovel/confira-lista-de-carros-aceitos-no-uber-black-em-2026-1.3731430"},
-      {"app": "99", "cat": "99Pop / 99Negocia", "regra": "4 portas, ar-condicionado e documento em dia. O ano mínimo muda por cidade e a 99 pode alterar sem aviso; o blog da 99 cita carros a partir de 2013 na capital paulista (texto antigo, confirmar no app).", "f": "99", "u": "https://99app.com/guias/guia-motorista-parceiro/"},
-      {"app": "99", "cat": "99Comfort / 99Black", "regra": "Modelo e ano da lista de elegíveis da 99, pelo menos 100 corridas no 99Pop e nota mínima que varia por cidade (informação de 2024, confirmar).", "f": "Garagem360", "u": "https://garagem360.com.br/carros-aceitos-na-99-2024-requisitos-para-motoristas"},
-      {"app": "99", "cat": "Utilitários", "regra": "Vans, utilitários e caminhões só são aceitos na Grande São Paulo.", "f": "99", "u": "https://99app.com/motorista/guias/guia-motorista-parceiro/"}
+  {
+   "nome": "99",
+   "cor": "#F2A314",
+   "linhas": [
+    [
+     "Taxa cobrada do motorista",
+     "Taxa Garantida de no máximo 19,99% por semana (com pelo menos 10 corridas na semana; informação de 2023, confirmar no app)."
     ],
-    "frota": [
-      {"match": ["virtus"], "nivel": "alto", "nota": "Uber Black em SP exige Virtus ano 2026 ou mais novo; há novas mudanças para Virtus em jan/2027. Conferir o ano de cada Virtus da frota."},
-      {"match": ["nivus"], "nivel": "medio", "nota": "Uber Black em SP exige Nivus 2023 ou mais novo."},
-      {"match": ["polo"], "nivel": "medio", "nota": "Uber Comfort em SP exige Polo 2023 ou mais novo. No UberX e 99Pop entra normalmente."},
-      {"match": ["argo"], "nivel": "medio", "nota": "Uber Comfort em SP exige Argo 2023 ou mais novo; a Uber anunciou mudanças para o Argo em 2027."},
-      {"match": ["plotado"], "nivel": "alto", "nota": "A Uber informa que não aceita carros adesivados. Confirmar se o Dolphin plotado da Yalla tem liberação antes de anunciar para Uber."},
-      {"match": ["saveiro"], "nivel": "medio", "nota": "Picape: na Uber precisa de capota na caçamba. Uso típico é entrega, não passageiro."},
-      {"match": ["fiorino", "new delivery", "fn1000", "e31"], "nivel": "info", "nota": "Utilitário de carga: não entra em categorias de passageiro. Na 99, utilitários só na Grande São Paulo (entregas)."},
-      {"match": ["mobi"], "nivel": "info", "nota": "Entrada (UberX / 99Pop). Não entra em Comfort."},
-      {"match": ["dolphin", "d1", "king", "corolla"], "nivel": "ok", "nota": "Elétrico ou híbrido: também pode rodar no 99 electric-Pro, onde disponível."}
+    [
+     "Como o preço é definido",
+     "Pelo app; a categoria 99Negocia permite negociar o valor com o passageiro."
     ],
-    "padrao": "Entra em UberX e 99Pop se estiver dentro do ano mínimo da cidade. Comfort e Black dependem da lista de modelos e do ano."
+    [
+     "Novidade de taxa",
+     "Pacote Taxa Zero: o motorista compra um pacote e roda com 0% de taxa. Vale para 99Pop, Pop Expresso, 99Negocia, 99Plus e electric-Pro, em 20 cidades selecionadas."
+    ],
+    [
+     "Categorias de carro",
+     "99Pop, 99Plus, 99Comfort, 99Black, 99Negocia, electric-Pro."
+    ],
+    [
+     "Aluguel de carro",
+     "99Loc (marketplace de locação), locadoras parceiras e programa de elétricos com a Seteloc."
+    ]
+   ],
+   "fontes": [
+    [
+     "99 (Taxa Zero)",
+     "https://99app.com/motorista/taxa-zero-pacote/"
+    ],
+    [
+     "Diário do Nordeste",
+     "https://diariodonordeste.verdesmares.com.br/ultima-hora/automovel/99-segue-uber-e-anuncia-pacote-que-zera-cobranca-de-tarifa-a-motoristas-veja-cidades-1.3769399"
+    ],
+    [
+     "AutoPapo",
+     "https://autopapo.com.br/curta/motoristas99-valor-exato-corrida/"
+    ]
+   ]
   },
-  "parcerias": [
-    {"quem": "99 + Seteloc", "o": "400 carros elétricos para locação de motoristas em 7 cidades, com início em Brasília.", "f": "99 Newsroom", "u": "https://99app.com/newsroom/99-e-seteloc-disponibilizam-400-veiculos-eletricos-para-locacao-de-motoristas-parceiros-em-7-cidades-brasileiras/"},
-    {"quem": "99Loc", "o": "Marketplace da 99 em que locadoras e pessoas físicas alugam carros para motoristas do app.", "f": "Tecnoblog", "u": "https://tecnoblog.net/guias/99-cria-servico-que-permite-a-dono-alugar-carro-para-motoristas-do-app/"},
-    {"quem": "99 + Movida", "o": "Movida aparece como locadora parceira da 99, com condições para motoristas (texto de 2024).", "f": "99", "u": "https://99app.com/blog/motorista/aluguel-de-carros-rio-de-janeiro-vantagens-com-parceiros-99/"},
-    {"quem": "99 (vitrine de aluguel)", "o": "Página oficial com ofertas de aluguel de carros elétricos e a combustão para parceiros.", "f": "99", "u": "https://99app.com/motorista/aluguel-carros-eletricos/"},
-    {"quem": "Uber (Vehicle Solutions)", "o": "A Uber faz parceria com locadoras e divulga ofertas de aluguel para motoristas.", "f": "Uber", "u": "https://www.uber.com/pt-BR/drive/vehicle-solutions/"},
-    {"quem": "Crédito federal (Move Brasil)", "o": "Financiamento de até R$ 150 mil, em até 72 meses, para motoristas de Uber, 99 e táxi comprarem carro. Não é locadora, mas concorre com o aluguel.", "f": "Exame", "u": "https://exame.com/arquivo/99taxis/"}
+  {
+   "nome": "inDrive",
+   "cor": "#A7E92F",
+   "linhas": [
+    [
+     "Taxa cobrada do motorista",
+     "Não confirmada nesta pesquisa. A empresa se posiciona como a de menor comissão; conferir no app."
+    ],
+    [
+     "Como o preço é definido",
+     "Negociado entre passageiro e motorista. Também lançou corridas com preço definido pelo app."
+    ],
+    [
+     "Novidade",
+     "Categoria Comfort com preço negociado e inDrive.Money (empréstimo de até R$ 3.000 para motoristas)."
+    ],
+    [
+     "Categorias de carro",
+     "Sem categoria premium tipo Black. Entrada simples: carro em bom estado, até cerca de 10 anos, 4 portas, 5 lugares e ar-condicionado."
+    ],
+    [
+     "Presença",
+     "Mais de 200 localidades, nos 27 estados."
+    ]
+   ],
+   "fontes": [
+    [
+     "Diário de Pernambuco",
+     "https://diariodepernambuco.com.br/dpmais/quais-sao-os-carros-permitidos-para-operar-nos-aplicativos-rivais-da-uber/"
+    ],
+    [
+     "Tecnoblog",
+     "https://tecnoblog.net/noticias/concorrente-da-uber-e-da-99-lanca-categoria-comfort-com-preco-negociado/"
+    ],
+    [
+     "PR Newswire",
+     "https://www.prnewswire.com/br/comunicados-para-a-imprensa/indrive-lanca-campanha-nacional-com-joelma-para-reforcar-modelo-de-mobilidade-com-preco-justo-e-liberdade-de-escolha-302738522.html"
+    ]
+   ]
+  }
+ ],
+ "noticias": [
+  {
+   "d": "set/2026",
+   "app": "Mercado",
+   "t": "IBGE: motorista de app trabalha 5,5 horas a mais por semana para ganhar quase o mesmo que os demais",
+   "imp": "Pressão de renda: preço do aluguel e consumo do carro viram argumento de venda.",
+   "f": "Diário do Transporte",
+   "u": "https://diariodotransporte.com.br/2026/09/04/renda-real-de-motoristas-de-aplicativos-sobe-so-1-em-tres-anos-e-dos-demais-trabalhadores-avanca-10-motoristas-de-onibus-acumulam-uber-e-99-e-setor-alerta-para-esgotamento-acidentes-e-riscos-juridic/amp/"
+  },
+  {
+   "d": "ago/2026",
+   "app": "Uber",
+   "t": "Uber é processada no Brasil por causa do Passe para Motoristas; caso ainda depende da Justiça",
+   "imp": "O modelo de assinatura pode mudar ou não chegar a São Paulo.",
+   "f": "O Povo",
+   "u": "https://opovo.com.br/trends/?p=23204"
+  },
+  {
+   "d": "ago–set/2026",
+   "app": "Uber",
+   "t": "Uber testa cobrar do motorista por corrida recusada na Suécia e na Suíça; sem previsão para o Brasil",
+   "imp": "Só acompanhar.",
+   "f": "Portal do Trânsito",
+   "u": "https://www.portaldotransito.com.br/noticias/mobilidade-e-tecnologia/uber-testa-cobranca-de-motoristas-por-corridas-recusadas-na-europa/"
+  },
+  {
+   "d": "2026",
+   "app": "99",
+   "t": "99 lança Pacote Taxa Zero em 20 cidades, na esteira do passe da Uber",
+   "imp": "Disputa por motorista via taxa: bom momento para campanhas falando de ganho líquido.",
+   "f": "Diário do Nordeste",
+   "u": "https://diariodonordeste.verdesmares.com.br/ultima-hora/automovel/99-segue-uber-e-anuncia-pacote-que-zera-cobranca-de-tarifa-a-motoristas-veja-cidades-1.3769399"
+  },
+  {
+   "d": "mai/2026",
+   "app": "99",
+   "t": "99 e Seteloc vão alugar 400 carros elétricos para motoristas em 7 cidades, começando por Brasília",
+   "imp": "Concorrência direta para Dolphin e D1 da Yalla quando chegar a São Paulo.",
+   "f": "99 Newsroom",
+   "u": "https://99app.com/newsroom/99-e-seteloc-disponibilizam-400-veiculos-eletricos-para-locacao-de-motoristas-parceiros-em-7-cidades-brasileiras/"
+  },
+  {
+   "d": "jun/2026",
+   "app": "Mercado",
+   "t": "Começa o financiamento federal de até R$ 150 mil para motoristas de Uber e 99 comprarem carro",
+   "imp": "Risco para locação: analistas do BBA apontam migração do aluguel para carro próprio.",
+   "f": "Exame",
+   "u": "https://exame.com/arquivo/99taxis/"
+  },
+  {
+   "d": "jan/2026",
+   "app": "Uber",
+   "t": "Novas regras do Uber Black e Comfort entram em vigor; novas mudanças anunciadas para janeiro de 2027",
+   "imp": "Afeta Virtus, Nivus, Polo e Argo da frota. Ver a aba 99 e Uber.",
+   "f": "Diário do Nordeste",
+   "u": "https://diariodonordeste.verdesmares.com.br/ultima-hora/automovel/confira-lista-de-carros-aceitos-no-uber-black-em-2026-1.3731430"
+  },
+  {
+   "d": "2026",
+   "app": "inDrive",
+   "t": "inDrive lança categoria Comfort no Brasil e corridas com preço definido pelo app",
+   "imp": "Terceira opção de renda para o motorista Yalla com carro Comfort.",
+   "f": "Tecnoblog",
+   "u": "https://tecnoblog.net/noticias/concorrente-da-uber-e-da-99-lanca-categoria-comfort-com-preco-negociado/"
+  },
+  {
+   "d": "em tramitação",
+   "app": "Regulação",
+   "t": "PLP 12/2024, que regulamenta o trabalho de motoristas de app, segue sem votação na Câmara",
+   "imp": "Pode mudar remuneração mínima e INSS. Acompanhar.",
+   "f": "Senado Notícias",
+   "u": "https://www12.senado.leg.br/noticias/infomaterias/2025/05/sem-consenso-regulacao-de-motoristas-de-aplicativo-e-desafio-para-o-congresso"
+  }
+ ],
+ "requisitos": {
+  "categorias": [
+   {
+    "app": "Uber",
+    "cat": "UberX",
+    "regra": "4 portas, 5 lugares e ar-condicionado. Em São Paulo a idade máxima é de 10 anos (em 2026, carro 2015 ou mais antigo não recebe viagens). Não aceita carro adesivado, placa vermelha nem van; picape precisa de capota.",
+    "f": "Uber",
+    "u": "https://www.uber.com/br/pt-br/drive/sao-paulo"
+   },
+   {
+    "app": "Uber",
+    "cat": "Comfort",
+    "regra": "Modelo da lista da Uber + pelo menos 100 viagens. Em São Paulo: Etios Sedan, Voyage, Prisma, Logan e Cobalt a partir de 2019; Polo e Argo a partir de 2023.",
+    "f": "Seu Crédito Digital",
+    "u": "https://seucreditodigital.com.br/novas-regras-uber-black-comfort-em-2026/"
+   },
+   {
+    "app": "Uber",
+    "cat": "Black",
+    "regra": "Em São Paulo (2026): Virtus a partir de 2026; Duster, Nivus e City a partir de 2023; demais modelos da lista a partir de 2019. Exige 100 viagens, nota 4,85 e cores preto, cinza, prata, branco, azul-marinho, marrom ou chumbo.",
+    "f": "Diário do Nordeste",
+    "u": "https://diariodonordeste.verdesmares.com.br/ultima-hora/automovel/confira-lista-de-carros-aceitos-no-uber-black-em-2026-1.3731430"
+   },
+   {
+    "app": "99",
+    "cat": "99Pop / 99Negocia",
+    "regra": "4 portas, ar-condicionado e documento em dia. O ano mínimo muda por cidade e a 99 pode alterar sem aviso; o blog da 99 cita carros a partir de 2013 na capital paulista (texto antigo, confirmar no app).",
+    "f": "99",
+    "u": "https://99app.com/guias/guia-motorista-parceiro/"
+   },
+   {
+    "app": "99",
+    "cat": "99Comfort / 99Black",
+    "regra": "Modelo e ano da lista de elegíveis da 99, pelo menos 100 corridas no 99Pop e nota mínima que varia por cidade (informação de 2024, confirmar).",
+    "f": "Garagem360",
+    "u": "https://garagem360.com.br/carros-aceitos-na-99-2024-requisitos-para-motoristas"
+   },
+   {
+    "app": "99",
+    "cat": "Utilitários",
+    "regra": "Vans, utilitários e caminhões só são aceitos na Grande São Paulo.",
+    "f": "99",
+    "u": "https://99app.com/motorista/guias/guia-motorista-parceiro/"
+   }
   ],
-  "oportunidade": "A Yalla não aparece nas vitrines de locadoras parceiras de Uber e 99 encontradas nesta pesquisa. Vale avaliar o cadastro no 99Loc e o contato com o time de Vehicle Solutions da Uber.",
-  "calc": {"horas": 46, "ganhoHora": 43, "kmSemana": 1100, "kmLitro": 12, "combustivel": 6.2, "kwhKm": 0.15, "kwh": 1.0, "outros": 80}
+  "frota": [
+   {
+    "match": [
+     "virtus"
+    ],
+    "nivel": "alto",
+    "nota": "Uber Black em SP exige Virtus ano 2026 ou mais novo; há novas mudanças para Virtus em jan/2027. Conferir o ano de cada Virtus da frota."
+   },
+   {
+    "match": [
+     "nivus"
+    ],
+    "nivel": "medio",
+    "nota": "Uber Black em SP exige Nivus 2023 ou mais novo."
+   },
+   {
+    "match": [
+     "polo"
+    ],
+    "nivel": "medio",
+    "nota": "Uber Comfort em SP exige Polo 2023 ou mais novo. No UberX e 99Pop entra normalmente."
+   },
+   {
+    "match": [
+     "argo"
+    ],
+    "nivel": "medio",
+    "nota": "Uber Comfort em SP exige Argo 2023 ou mais novo; a Uber anunciou mudanças para o Argo em 2027."
+   },
+   {
+    "match": [
+     "plotado"
+    ],
+    "nivel": "alto",
+    "nota": "A Uber informa que não aceita carros adesivados. Confirmar se o Dolphin plotado da Yalla tem liberação antes de anunciar para Uber."
+   },
+   {
+    "match": [
+     "saveiro"
+    ],
+    "nivel": "medio",
+    "nota": "Picape: na Uber precisa de capota na caçamba. Uso típico é entrega, não passageiro."
+   },
+   {
+    "match": [
+     "fiorino",
+     "new delivery",
+     "fn1000",
+     "e31"
+    ],
+    "nivel": "info",
+    "nota": "Utilitário de carga: não entra em categorias de passageiro. Na 99, utilitários só na Grande São Paulo (entregas)."
+   },
+   {
+    "match": [
+     "mobi"
+    ],
+    "nivel": "info",
+    "nota": "Entrada (UberX / 99Pop). Não entra em Comfort."
+   },
+   {
+    "match": [
+     "dolphin",
+     "d1",
+     "king",
+     "corolla"
+    ],
+    "nivel": "ok",
+    "nota": "Elétrico ou híbrido: também pode rodar no 99 electric-Pro, onde disponível."
+   }
+  ],
+  "padrao": "Entra em UberX e 99Pop se estiver dentro do ano mínimo da cidade. Comfort e Black dependem da lista de modelos e do ano."
+ },
+ "parcerias": [
+  {
+   "quem": "99 + Seteloc",
+   "o": "400 carros elétricos para locação de motoristas em 7 cidades, com início em Brasília.",
+   "f": "99 Newsroom",
+   "u": "https://99app.com/newsroom/99-e-seteloc-disponibilizam-400-veiculos-eletricos-para-locacao-de-motoristas-parceiros-em-7-cidades-brasileiras/"
+  },
+  {
+   "quem": "99Loc",
+   "o": "Marketplace da 99 em que locadoras e pessoas físicas alugam carros para motoristas do app.",
+   "f": "Tecnoblog",
+   "u": "https://tecnoblog.net/guias/99-cria-servico-que-permite-a-dono-alugar-carro-para-motoristas-do-app/"
+  },
+  {
+   "quem": "99 + Movida",
+   "o": "Movida aparece como locadora parceira da 99, com condições para motoristas (texto de 2024).",
+   "f": "99",
+   "u": "https://99app.com/blog/motorista/aluguel-de-carros-rio-de-janeiro-vantagens-com-parceiros-99/"
+  },
+  {
+   "quem": "99 (vitrine de aluguel)",
+   "o": "Página oficial com ofertas de aluguel de carros elétricos e a combustão para parceiros.",
+   "f": "99",
+   "u": "https://99app.com/motorista/aluguel-carros-eletricos/"
+  },
+  {
+   "quem": "Uber (Vehicle Solutions)",
+   "o": "A Uber faz parceria com locadoras e divulga ofertas de aluguel para motoristas.",
+   "f": "Uber",
+   "u": "https://www.uber.com/pt-BR/drive/vehicle-solutions/"
+  },
+  {
+   "quem": "Crédito federal (Move Brasil)",
+   "o": "Financiamento de até R$ 150 mil, em até 72 meses, para motoristas de Uber, 99 e táxi comprarem carro. Não é locadora, mas concorre com o aluguel.",
+   "f": "Exame",
+   "u": "https://exame.com/arquivo/99taxis/"
+  }
+ ],
+ "oportunidade": "A Yalla não aparece nas vitrines de locadoras parceiras de Uber e 99 encontradas nesta pesquisa. Vale avaliar o cadastro no 99Loc e o contato com o time de Vehicle Solutions da Uber.",
+ "calc": {
+  "horas": 46,
+  "ganhoHora": 43,
+  "kmSemana": 1100,
+  "kmLitro": 12,
+  "combustivel": 6.2,
+  "kwhKm": 0.15,
+  "kwh": 1.0,
+  "outros": 80
+ },
+ "persona": [
+  {
+   "c": "quem",
+   "t": "Renda de R$ 2.873 por mês",
+   "w": 2,
+   "x": "Renda média mensal do motorista de app, segundo o IBGE (PNAD, dados de 2025).",
+   "f": "IBGE (PNAD)"
+  },
+  {
+   "c": "rotina",
+   "t": "5,5 h a mais por semana",
+   "w": 1,
+   "x": "Motoristas de app trabalham em média 5,5 horas a mais por semana do que os motoristas fora dos apps, segundo o IBGE.",
+   "f": "IBGE"
+  }
+ ]
 }

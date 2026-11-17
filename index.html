@@ -122,7 +122,7 @@ body.side-min .nav a .cnt{position:absolute;top:2px;right:4px;font-size:9px;padd
 .mp-ov i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:-1px}
 .mp-side{display:flex;flex-direction:column;height:calc(100vh - 250px);min-height:520px;padding:14px 10px 10px}
 .mp-side h3{margin:0 6px 8px}
-#mapaList{overflow:auto;flex:1}
+.mp-side{overflow:auto}#mapaList{flex:none}
 .mp-li{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:0;border-radius:8px;padding:8px 8px;color:var(--txt);font:500 12.5px Montserrat;cursor:pointer}
 .mp-li:hover{background:var(--navy3)}.mp-li.on{background:var(--red-soft);color:#fff}
 .mp-d{width:8px;height:8px;border-radius:50%;background:var(--red);flex:none}.mp-n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mp-k{color:var(--dim);font-size:11px;flex:none}
@@ -163,6 +163,17 @@ body.side-min .nav a .cnt{position:absolute;top:2px;right:4px;font-size:9px;padd
 .ps-k{font:700 10px Montserrat;letter-spacing:.06em;padding:3px 7px;border-radius:5px;text-transform:uppercase}.ps-k.d{color:var(--green);background:var(--green-soft)}.ps-k.h{color:var(--amber);background:var(--amber-soft)}
 @media (max-width:1000px){.ps-wrap{grid-template-columns:1fr}.ps-stage{min-height:620px}.ps-chip span{font-size:11px!important;padding:5px 9px!important}.ps-av{width:110px;height:110px}}
 @media (prefers-reduced-motion:reduce){.ps-chip,.ps-chip span,.ps-orbit,.ps-core,.ps-av{animation:none!important}}
+body.mp-full{overflow:hidden}
+body.mp-full .mp-map{position:fixed;inset:0;z-index:150;height:auto!important;min-height:0;border-radius:0;border:0}
+body.mp-full #mapaBar{position:fixed;top:12px;left:12px;right:12px;z-index:152;margin:0;background:rgba(13,18,32,.88);backdrop-filter:blur(8px);padding:10px 12px}
+body.mp-full .mp-ov{top:auto;bottom:14px}
+body.mp-full .side,body.mp-full .mp-side{display:none}
+.ps-k.a{color:#4FD1C5;background:rgba(79,209,197,.14)}
+.ps-chip.auto span{border-style:dashed}
+.ps-stage.edit .ps-chip{animation:none}
+.ps-stage.dense .ps-chip span{font-size:11.5px;padding:6px 11px}
+.ps-stage.dense .ps-chip.r0 span{font-size:12.5px;padding:7px 13px}
+.ps-chip.sel span{outline:2px solid var(--y);outline-offset:3px}
 /* main */
 .main{padding:0 32px 64px;min-width:0}
 .top{position:sticky;top:0;z-index:5;background:var(--topbg);backdrop-filter:blur(8px);display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:20px 0 16px;border-bottom:1px solid var(--line);margin-bottom:22px}
@@ -757,10 +768,10 @@ function mapaGeo(){
   const d=MAPA.data||{areas:[],points:[]};
   return{areas:{type:"FeatureCollection",features:d.areas.map(a=>({type:"Feature",id:a.i,properties:{i:a.i,name:a.name},geometry:{type:"MultiPolygon",coordinates:a.polys}}))},
     cents:{type:"FeatureCollection",features:d.areas.map(a=>({type:"Feature",id:a.i,properties:{i:a.i,name:a.name},geometry:{type:"Point",coordinates:a.c}}))},
-    loc:{type:"FeatureCollection",features:(MAPA.loc||[]).map((p,i)=>({type:"Feature",properties:{i,name:p.name,kind:p.kind},geometry:{type:"Point",coordinates:[p.lng,p.lat]}}))},
+    loc:{type:"FeatureCollection",features:(MAPA.loc||[]).map((p,i)=>({type:"Feature",properties:{i,name:p.name,kind:p.kind,color:mapaBrandColor(p)},geometry:{type:"Point",coordinates:[p.lng,p.lat]}}))},
     pts:{type:"FeatureCollection",features:d.points.filter(p=>!/yalla|unidade|concorr/i.test(p.folder||"")).map((p,i)=>({type:"Feature",properties:{i,name:p.name,kind:p.kind},geometry:{type:"Point",coordinates:[p.lng,p.lat]}}))}};
 }
-function mapaSync(){const m=MAPA.map;if(!m||!m.getSource("risk"))return;const g=mapaGeo();m.getSource("risk").setData(g.areas);m.getSource("riskc").setData(g.cents);m.getSource("pts").setData(g.pts);if(m.getSource("loc"))m.getSource("loc").setData(g.loc);}
+function mapaSync(){const m=MAPA.map;if(!m||!m.getSource("risk"))return;const g=mapaGeo();m.getSource("risk").setData(g.areas);m.getSource("riskc").setData(g.cents);m.getSource("pts").setData(g.pts);if(m.getSource("loc"))m.getSource("loc").setData(g.loc);if(m.getSource("zones"))m.getSource("zones").setData(mapaZonesGeo());}
 function mapaLib(){return window.maplibregl?Promise.resolve():(MAPA.libP=MAPA.libP||new Promise((ok,no)=>{const l=document.createElement("link");l.rel="stylesheet";l.href=MAPA_LIB+".css";document.head.appendChild(l);const s=document.createElement("script");s.src=MAPA_LIB+".js";s.onload=ok;s.onerror=()=>{MAPA.libP=null;no(new Error("Não foi possível carregar o mapa (biblioteca MapLibre)."));};document.head.appendChild(s);}));}
 async function mapaInit(){
   if(MAPA.map||MAPA.initing)return;MAPA.initing=true;
@@ -770,7 +781,7 @@ async function mapaInit(){
     try{const r=await fetch(MAPA_STYLE);if(!r.ok)throw 0;style=await r.json();}catch(e){glyphs=false;style={version:8,sources:{},layers:[{id:"bg",type:"background",paint:{"background-color":"#0a1020"}}]};}
     MAPA.base=glyphs;
     const el=MAPA.el=document.createElement("div");el.style.cssText="position:absolute;inset:0";
-    const m=new maplibregl.Map({container:el,style,center:[-30,-5],zoom:1.1,pitch:0,attributionControl:{compact:true},maxPitch:70,cooperativeGestures:false});
+    const m=new maplibregl.Map({container:el,style,center:[-30,-5],zoom:1.1,pitch:0,attributionControl:{compact:true},maxPitch:80,cooperativeGestures:false});
     m.addControl(new maplibregl.NavigationControl({visualizePitch:true}),"bottom-right");
     m.on("load",()=>{
       try{m.setProjection({type:"globe"});}catch(e){}
@@ -800,6 +811,7 @@ async function mapaInit(){
       ["risk-fill","risk-dot","risk-halo"].forEach(id=>{m.on("click",id,e=>{const f=e.features[0];if(f)mapaFocus(f.properties.i,e.lngLat,true);});m.on("mouseenter",id,()=>m.getCanvas().style.cursor="pointer");m.on("mouseleave",id,()=>m.getCanvas().style.cursor="");});
       m.on("click","pts",e=>{const f=e.features[0],p=MAPA.data.points[f.properties.i];mapaPopup([p.lng,p.lat],`<b>${mapaEsc(p.name)}</b><div class="mp-s">${p.kind==="oficina"?"Oficina parceira":"Ponto marcado"}${p.desc?" · "+mapaEsc(p.desc):""}</div>${mapaGLink([p.lng,p.lat])}`);});
       m.on("mouseenter","pts",()=>m.getCanvas().style.cursor="pointer");m.on("mouseleave","pts",()=>m.getCanvas().style.cursor="");
+      try{mapaExtra(m,glyphs);}catch(e){console.warn("mapaExtra",e);}
       MAPA.ready=true;
       setTimeout(()=>m.flyTo({...MAPA_BR,pitch:REDUCED?0:38,bearing:0,duration:REDUCED?0:3200,essential:true}),250);
       mapaLoop();
@@ -820,6 +832,7 @@ function mapaLoop(){
       if(MAPA.spin&&!MAPA.tour&&Date.now()-MAPA.lastTouch>4500&&!m.isMoving()&&!document.hidden)m.setBearing((m.getBearing()+dt*.0028)%360);
       if(m.getLayer("loc-halo")&&!REDUCED&&MAPA.showLoc){const k=(t%2200)/2200;m.setPaintProperty("loc-halo","circle-radius",12+k*22);m.setPaintProperty("loc-halo","circle-opacity",.42*(1-k));}
       if(m.getZoom()<10.5&&m.getLayer("risk-halo")&&!REDUCED){const k=(t%1800)/1800;m.setPaintProperty("risk-halo","circle-radius",6+k*16);m.setPaintProperty("risk-halo","circle-opacity",.38*(1-k));}
+      if(MAPA.showVeh&&!REDUCED&&!document.hidden){try{vehStep(m,dt);}catch(e){}}
     }
     MAPA.raf=requestAnimationFrame(step);};
   MAPA.raf=requestAnimationFrame(step);
@@ -830,7 +843,7 @@ function mapaSelect(i){const m=MAPA.map;if(!m||!MAPA.ready)return;if(MAPA.sel!=n
   document.querySelectorAll(".mp-li").forEach(e=>e.classList.toggle("on",+e.dataset.i===i));}
 function mapaFocus(i,at,keepView){
   const a=MAPA.data.areas[i],m=MAPA.map;if(!a||!m)return;MAPA.lastTouch=Date.now()-2500;mapaSelect(i);
-  if(!keepView||m.getZoom()<11)m.fitBounds(a.bb,{padding:{top:90,bottom:90,left:90,right:90},maxZoom:15.5,pitch:REDUCED?0:58,bearing:m.getBearing(),duration:REDUCED?0:2200,essential:true});
+  if(!keepView||m.getZoom()<11)m.fitBounds(a.bb,{padding:{top:90,bottom:90,left:90,right:90},maxZoom:15.5,pitch:REDUCED?0:64,bearing:m.getBearing(),duration:REDUCED?0:2200,essential:true});
   mapaPopup(at||a.c,`<span class="mp-tag">Área de risco</span><b>${mapaEsc(a.name)}</b><div class="mp-s">${a.km2>=1?a.km2.toFixed(1).replace(".",",")+" km²":Math.round(a.km2*100)+" hectares"}${a.desc?" · "+mapaEsc(a.desc):""}</div>${mapaGLink(a.c)}`);
   const li=document.querySelector(`.mp-li[data-i="${i}"]`);if(li)li.scrollIntoView({block:"nearest"});
 }
@@ -842,14 +855,21 @@ function mapaTour(on){MAPA.tour=on==null?!MAPA.tour:on;clearTimeout(MAPA.tourT);
   if(MAPA.tour){const next=()=>{if(!MAPA.tour||state.page!=="mapa")return;const A=MAPA.data?.areas||[];if(!A.length)return;const a=A[MAPA.ti%A.length];MAPA.ti++;mapaFocus(a.i);MAPA.tourT=setTimeout(next,6500);};next();}
   mapaBtns();}
 function mapaLocFocus(i,keep){const p=(MAPA.loc||[])[i],m=MAPA.map;if(!p||!m||!MAPA.ready)return;if(MAPA.tour)mapaTour(false);MAPA.lastTouch=Date.now()-2500;mapaSelect(null);
-  if(!keep||m.getZoom()<13)m.flyTo({center:[p.lng,p.lat],zoom:16.2,pitch:REDUCED?0:60,bearing:m.getBearing(),duration:REDUCED?0:2600,essential:true});
+  if(!keep||m.getZoom()<13)m.flyTo({center:[p.lng,p.lat],zoom:16.2,pitch:REDUCED?0:70,bearing:m.getBearing(),duration:REDUCED?0:2600,essential:true});
   const L=mapaLocate([p.lng,p.lat]),km=L.km,kt=km<1?Math.round(km*1000)+" m":km.toFixed(1).replace(".",",")+" km";
   mapaPopup([p.lng,p.lat],`<span class="mp-tag" style="color:${p.kind==="yalla"?"var(--y)":"#B07CFF"}">${p.kind==="yalla"?"Unidade Yalla":"Concorrente"}</span><b>${mapaEsc(p.name)}</b><div class="mp-s">${mapaEsc(p.addr||"")}${p.approx?"<br>Posição aproximada (nível da rua)":""}${L.near?`<br>${L.inside?"Dentro da área de risco "+mapaEsc(L.inside.name):"Área de risco mais próxima: "+mapaEsc(L.near.name)+", a "+kt}`:""}</div>${mapaGLink([p.lng,p.lat])}`);}
 function mapaLocToggle(){MAPA.showLoc=!MAPA.showLoc;const m=MAPA.map;if(m&&MAPA.ready)["loc-halo","loc-conc","loc-yalla","loc-lbl"].forEach(id=>m.getLayer(id)&&m.setLayoutProperty(id,"visibility",MAPA.showLoc?"visible":"none"));mapaBtns();}
+function mapaFull(on){const b=document.body,want=on==null?!b.classList.contains("mp-full"):on;if(want===b.classList.contains("mp-full"))return;
+  b.classList.toggle("mp-full",want);
+  try{if(want&&!document.fullscreenElement)document.documentElement.requestFullscreen?.().catch(()=>{});else if(!want&&document.fullscreenElement)document.exitFullscreen?.();}catch(e){}
+  mapaBtns();[60,350,900].forEach(t=>setTimeout(()=>MAPA.map&&MAPA.map.resize(),t));}
+document.addEventListener("fullscreenchange",()=>{if(!document.fullscreenElement&&document.body.classList.contains("mp-full"))mapaFull(false);});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&document.body.classList.contains("mp-full")&&!document.fullscreenElement)mapaFull(false);});
+window.addEventListener("hashchange",()=>{if(document.body.classList.contains("mp-full"))mapaFull(false);});
 function mapaPts(){MAPA.showPts=!MAPA.showPts;const m=MAPA.map;if(m&&MAPA.ready)["pts","pts-lbl"].forEach(id=>m.getLayer(id)&&m.setLayoutProperty(id,"visibility",MAPA.showPts?"visible":"none"));mapaBtns();}
 function mapaBtns(){const e=document.getElementById("mapaBtns");if(e)e.innerHTML=mapaBtnsHTML();}
 function mapaBtnsHTML(){const b=(l,fn,on,t)=>`<button class="btn" title="${t||""}" style="height:34px;font-size:12px;${on?"border-color:var(--y);color:var(--y)":""}" onclick="${fn}">${l}</button>`;
-  return b(MAPA.spin?"⏸ Pausar giro":"▶ Girar","mapaSpin()",MAPA.spin,"O mapa gira sozinho quando você não está mexendo")+b(MAPA.tour?"⏹ Parar tour":"🎬 Tour pelas áreas","mapaTour()",MAPA.tour,"Passa por todas as áreas, uma a cada 6 segundos")+b("Brasil","mapaView('br')")+b("Todas as áreas","mapaView('all')")+b((MAPA.showLoc?"✓ ":"")+"Yalla e concorrentes","mapaLocToggle()",MAPA.showLoc)+b((MAPA.showPts?"✓ ":"")+"Oficinas e pontos","mapaPts()",MAPA.showPts);}
+  return b(MAPA.spin?"⏸ Pausar giro":"▶ Girar","mapaSpin()",MAPA.spin,"O mapa gira sozinho quando você não está mexendo")+b(MAPA.tour?"⏹ Parar tour":"🎬 Tour pelas áreas","mapaTour()",MAPA.tour,"Passa por todas as áreas, uma a cada 6 segundos")+b("Brasil","mapaView('br')")+b("Todas as áreas","mapaView('all')")+b(document.body.classList.contains("mp-full")?"✕ Sair da tela cheia":"⛶ Tela cheia","mapaFull()",document.body.classList.contains("mp-full"),"Abre o mapa ocupando a tela toda (Esc para sair)")+b((MAPA.showLoc?"✓ ":"")+"Yalla e concorrentes","mapaLocToggle()",MAPA.showLoc)+b((MAPA.showPts?"✓ ":"")+"Oficinas e pontos","mapaPts()",MAPA.showPts)+b((MAPA.showZones!==false?"✓ ":"")+"Zonas de força","mapaZones()",MAPA.showZones!==false,"Raio de 4 km em volta de cada unidade dos concorrentes")+(REDUCED?"":b((MAPA.showVeh!==false?"✓ ":"")+"Carros e aviões","mapaVeh()",MAPA.showVeh!==false,"Animação ilustrativa, não é rastreamento real"))+b("🏙 Cidade 3D","mapaCity()",false,"Desce até a rua, com os prédios em 3D");}
 /* busca: áreas do mapa + cidades/endereços (OpenStreetMap) */
 let mapaQT=null,mapaQN=0;
 function mapaType(v){MAPA.q=v;clearTimeout(mapaQT);mapaList();const q=v.trim();if(q.length<3){MAPA.sug=[];mapaSug();return;}mapaQT=setTimeout(()=>mapaGeocode(q),450);}
@@ -974,7 +994,7 @@ function mapaLogHTML(){
   return`<div class="tbl-wrap" style="max-height:300px;overflow:auto"><table><tbody>${MAPA.log.map(l=>{const k=K[l.kind]||["var(--muted)",l.kind];return`<tr><td style="white-space:nowrap;color:var(--muted);width:120px">${new Date(l.at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"})}</td><td style="white-space:nowrap;width:140px"><b style="color:${k[0]};font-size:12px">● ${k[1]}</b></td><td><b>${mapaEsc(l.name||"")}</b> <span style="color:var(--muted)">${mapaEsc(l.detail||"")}</span></td></tr>`}).join("")}</tbody></table></div>${only?'<p class="mp-sn" style="padding:8px 0 0">Nenhuma mudança desde o início do registro. Áreas novas, removidas ou redesenhadas no My Maps vão aparecer aqui com data e hora.</p>':""}`;}
 /* ---------- persona do lead ideal (animada) ---------- */
 const PERS_CATS={quem:["Quem é","#F2A314"],rotina:["Rotina","#5b8def"],dor:["Dores","#FF6363"],busca:["O que busca","#2ED47A"],onde:["Onde está","#B07CFF"],gatilho:["O que faz fechar","#4FD1C5"],trava:["O que trava","#8C95AB"]};
-const PERS=[
+const PERS_BASE=[
  {c:"quem",t:"Homem",w:3,k:"d",x:"95% dos motoristas de app são homens.",f:"Amobitec/Cebrap"},
  {c:"quem",t:"35 a 45 anos",w:3,k:"d",x:"Idade média de 39 anos.",f:"Amobitec/Cebrap"},
  {c:"quem",t:"Ensino médio completo",w:2,k:"d",x:"60% têm ensino médio completo.",f:"Amobitec/Cebrap"},
@@ -1013,8 +1033,8 @@ function persLayout(){ /* posições em % do palco, por anéis */
   const act=persState().cat,items=PERS.map((p,i)=>({...p,i}));
   const rings=[items.filter(p=>p.w===3),items.filter(p=>p.w===2),items.filter(p=>p.w===1)],R=[[24,27],[37,38],[45,46]],out=[];
   rings.forEach((r,ri)=>r.forEach((p,k)=>{const a=(k/r.length)*Math.PI*2+ri*.55-Math.PI/2;const z=ri===1?(k%2?1.12:.9):ri===0?(k%2?1.06:.94):1;out.push({...p,x:Math.cos(a)*R[ri][0]*z,y:Math.sin(a)*R[ri][1]*z,ring:ri,dim:act!=="all"&&p.c!==act});}));
-  out.forEach(o=>{o.w=(o.t.length*(o.ring===0?8.6:7.6)+34)/8.2/2;o.h=(o.ring===0?42:36)/6.6/2;});
-  for(let it=0;it<140;it++){for(let i=0;i<out.length;i++){const a=out[i];
+  out.forEach(o=>{o.w=((o.t.length+(o.k==="a"?2.5:0))*(o.ring===0?8.6:7.6)+34)/8.2/2;o.h=(o.ring===0?42:36)/6.6/2;});
+  for(let it=0;it<(out.length>38?420:140);it++){for(let i=0;i<out.length;i++){const a=out[i];
       for(let j=i+1;j<out.length;j++){const b=out[j],ox=a.w+b.w+.8-Math.abs(a.x-b.x),oy=a.h+b.h+.9-Math.abs(a.y-b.y);
         if(ox>0&&oy>0){if(oy<ox*.8){const s=(a.y<=b.y?-1:1)*oy/2;a.y+=s;b.y-=s;}else{const s=(a.x<=b.x?-1:1)*ox/2;a.x+=s;b.x-=s;}}}
       const cx=14+a.w,cy=19+a.h;if(Math.abs(a.x)<cx&&Math.abs(a.y)<cy){if(cx-Math.abs(a.x)<cy-Math.abs(a.y))a.x=(a.x<0?-1:1)*cx;else a.y=(a.y<0?-1:1)*cy;}
@@ -1361,13 +1381,14 @@ function renderUserBox(){
   b.innerHTML=`<span title="${u.email}" style="width:34px;height:34px;border-radius:50%;background:var(--navy3);border:1px solid var(--line2);display:inline-flex;align-items:center;justify-content:center;font:700 12px Montserrat;color:var(--y)">${ini}</span>
     <span style="font-size:12px;color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.name||u.email}${u.role==="admin"?' · <b style="color:var(--y)">admin</b>':""}</span>
     <button class="btn" style="height:30px;font-size:11.5px" onclick="doLogout()">Sair</button>`;
+  if(typeof onlDraw==="function")onlDraw();
 }
 let APP_STARTED=false;
 function startApp(){
   document.getElementById("authGate")?.remove();
   PRES=PAGES.filter(p=>p.id&&!["historico","importar","usuarios"].includes(p.id)&&canSee(p.id)).map(p=>p.id);
   renderUserBox();render();hideBoot();
-  if(!APP_STARTED){APP_STARTED=true;setTimeout(()=>syncCompLive(false),400);setTimeout(()=>{if(canSee("mapa")&&MAPA.st==="idle")mapaLoad();},2500);}
+  if(!APP_STARTED){APP_STARTED=true;onlStart();persLoad();setTimeout(()=>syncCompLive(false),400);setTimeout(()=>{if(canSee("mapa")&&MAPA.st==="idle")mapaLoad();},2500);}
 }
 async function authBoot(){
   if(!AUTH_ON){startApp();return;}
@@ -1398,7 +1419,7 @@ const inviteURL=code=>location.origin+location.pathname+"#convite="+code;
 const UPRESETS={
   diretoria:{l:"Diretoria (resultados)",tabs:["geral","alertas","mensal","periodo","comparar","reservas","receita","funil","analise"]},
   midia:{l:"Mídia paga",tabs:["geral","alertas","mensal","diario","periodo","comparar","meta","google","gpt","campanhas","criativos","seo"]},
-  comercial:{l:"Comercial",tabs:["geral","reservas","funil","produtos","concorrencia","mapa","persona","motoristas","apps"]},
+  comercial:{l:"Comercial",tabs:["geral","reservas","funil","produtos","concorrencia","mapa","persona","motoristas","apps","noticias"]},
   influ:{l:"Influenciadores",tabs:["influencers"]}
 };
 const MEDIA_COLORS=()=>({"Meta Ads":Y,"Google Ads":B,"ChatGPT Ads":"#10A37F","Influenciadores":"#F687B3"});
@@ -1891,6 +1912,7 @@ const PAGES=[
   {id:"persona",name:"Persona do lead ideal",ic:"star",tag:"NOVO"},
   {id:"motoristas",name:"Motoristas de app",ic:"car",tag:"NOVO"},
   {id:"apps",name:"99 e Uber",ic:"chess",tag:"NOVO"},
+  {id:"noticias",name:"Notícias",ic:"notes",tag:"NOVO"},
   {grp:"Dados"},
   {id:"historico",name:"Histórico",ic:"hist"},
   {id:"fontes",name:"Fontes de dados",ic:"db"},
@@ -2331,7 +2353,7 @@ periodo_after(){
 mapa(){
   if(!MAPA.data){try{const c=JSON.parse(localStorage.getItem(MAPA_KEY)||"null");if(c&&c.areas)MAPA.data=mapaPrep(c);}catch(e){}}
   const d=MAPA.data,A=d?.areas||[],km=A.reduce((s,a)=>s+a.km2,0),of=(d?.points||[]).filter(p=>p.kind==="oficina").length,ot=(d?.points||[]).length-of;
-  return`  <div class="card" style="margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+  return`  <div class="card" id="mapaBar" style="margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
     <div class="mp-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
       <input id="mapaQ" type="search" autocomplete="off" placeholder="Pesquisar cidade, bairro, endereço ou área de risco…" aria-label="Pesquisar cidade, bairro, endereço ou área de risco" value="${mapaEsc(MAPA.q)}" oninput="mapaType(this.value)" onfocus="mapaSug()" onblur="setTimeout(mapaSugHide,180)" onkeydown="if(event.key==='Enter'){event.preventDefault();mapaEnter()}else if(event.key==='Escape'){mapaSugHide()}">
       <div id="mapaSug" role="listbox"></div></div>
@@ -2340,8 +2362,8 @@ mapa(){
   <div id="mapaHit"></div>
   <div class="mp-wrap">
     <div class="card mp-map"><div id="mapaHost"><div class="empty" style="padding:80px 20px">Carregando o mapa…</div></div>
-      <div class="mp-ov"><span><i style="background:#FF4D4D"></i>${A.length} ${A.length===1?"área":"áreas"} de risco</span><span>${km.toFixed(0)} km² demarcados</span>${(MAPA.loc||[]).some(l=>l.kind==="yalla")?`<span><i style="background:#F2A314"></i>Yalla</span>`:""}${(MAPA.loc||[]).filter(l=>l.kind==="conc").length?`<span><i style="background:#B07CFF"></i>${(MAPA.loc||[]).filter(l=>l.kind==="conc").length} concorrentes</span>`:""}${of?`<span><i style="background:#5b8def"></i>${of} ${of===1?"oficina":"oficinas"}</span>`:""}${ot?`<span><i style="background:#2ED47A"></i>${ot} ${ot===1?"ponto":"pontos"}</span>`:""}</div></div>
-    <div class="card mp-side"><h3>Yalla e concorrentes</h3><div style="margin-bottom:10px">${(MAPA.loc||[]).map((l,i)=>`<button class="mp-li" onclick="mapaLocFocus(${i})"><span class="mp-d" style="background:${l.kind==="yalla"?"#F2A314":"#B07CFF"}"></span><span class="mp-n">${mapaEsc(l.name)}</span><span class="mp-k">${l.approx?"aprox.":""}</span></button>`).join("")||'<div class="mp-sn">Carregando…</div>'}</div><h3>Áreas de risco (${A.length})</h3><div id="mapaList"></div></div>
+      <div class="mp-ov">${REDUCED?"":`<span id="mapaVehNote" title="Os carros e aviões são uma animação ilustrativa. Não mostram veículos reais nem rastreamento." style="${MAPA.showVeh===false?"display:none":""}">🚗 ✈ animação ilustrativa</span>`}<span><i style="background:#FF4D4D"></i>${A.length} ${A.length===1?"área":"áreas"} de risco</span><span>${km.toFixed(0)} km² demarcados</span>${(MAPA.loc||[]).some(l=>l.kind==="yalla")?`<span><i style="background:#F2A314"></i>Yalla</span>`:""}${(MAPA.loc||[]).filter(l=>l.kind==="conc").length?`<span><i style="background:#B07CFF"></i>${(MAPA.loc||[]).filter(l=>l.kind==="conc").length} concorrentes</span>`:""}${of?`<span><i style="background:#5b8def"></i>${of} ${of===1?"oficina":"oficinas"}</span>`:""}${ot?`<span><i style="background:#2ED47A"></i>${ot} ${ot===1?"ponto":"pontos"}</span>`:""}</div></div>
+    <div class="card mp-side"><h3>Yalla e concorrentes</h3><div style="margin-bottom:10px">${(MAPA.loc||[]).map((l,i)=>`<button class="mp-li" onclick="mapaLocFocus(${i})"><span class="mp-d" style="background:${l.kind==="yalla"?"#F2A314":"#B07CFF"}"></span><span class="mp-n">${mapaEsc(l.name)}</span><span class="mp-k">${l.approx?"aprox.":""}</span></button>`).join("")||'<div class="mp-sn">Carregando…</div>'}${(MAPA.locRaw?.semEndereco||[]).length?`<div class="mp-sn" style="padding:8px 8px 0;line-height:1.5">Sem endereço público (fora do mapa): ${MAPA.locRaw.semEndereco.map(mapaEsc).join(", ")}.</div>`:""}</div>${mapaBrandsHTML()}<h3 style="margin-top:14px">Áreas de risco (${A.length})</h3><div id="mapaList"></div></div>
   </div>
   <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px"><span id="mapaSt" class="sub" style="font-size:12px">${mapaStatusHTML()}</span><button class="btn" style="height:30px;font-size:11.5px" onclick="mapaLoad(true)">Atualizar agora</button>
     <a class="sub" style="font-size:12px;color:var(--y);margin-left:auto" target="_blank" rel="noopener" href="https://www.google.com/maps/d/edit?mid=1WPD0IBoDn2vaaI8tlxKKPhU2mo4A4Dk">Editar no Google My Maps ↗</a></div>
@@ -3633,11 +3655,11 @@ function render(){
     document.getElementById("selCtl").style.display="";document.getElementById("dpBtn").style.display="none";if(DP.open)dpClose();
     lbl.textContent="Período (exemplo)";sel.innerHTML=HISTORY.filter(h=>REPORTS[h.id]).map(h=>`<option value="${h.id}" ${h.id===state.report?"selected":""}>${h.label} · ${h.period}</option>`).join("");
     sel.onchange=e=>{state.report=e.target.value;render();};
-    document.getElementById("pageTitle").innerHTML=`${pg.name}<small>${state.page==="concorrencia"?"Consulta "+(COMP.date||"—"):state.page==="mapa"?"Áreas de risco, unidade Yalla e concorrentes":state.page==="persona"?"Quem é o cliente perfeito da Yalla":["motoristas","apps"].includes(state.page)?"Pesquisa de mercado"+(APPS.d?" · atualizada em "+APPS.d.updated:""):r.label+" · "+r.period}</small>`;
-    if(["mapa","motoristas","apps","persona"].includes(state.page))document.getElementById("selCtl").style.display="none";
+    document.getElementById("pageTitle").innerHTML=`${pg.name}<small>${state.page==="concorrencia"?"Consulta "+(COMP.date||"—"):state.page==="mapa"?"Áreas de risco, unidade Yalla e concorrentes":state.page==="persona"?"Quem é o cliente perfeito da Yalla":["motoristas","apps"].includes(state.page)?"Pesquisa de mercado"+(APPS.d?" · atualizada em "+APPS.d.updated:""):state.page==="noticias"?"Marketing de marca, growth e concorrentes"+(NEWS.d?" · atualizado em "+NEWS.d.updated:""):r.label+" · "+r.period}</small>`;
+    if(["mapa","motoristas","apps","persona","noticias"].includes(state.page))document.getElementById("selCtl").style.display="none";
   }
   const db=document.getElementById("demoBar");
-  const BANNER={persona:"Persona do lead ideal · combina pesquisas públicas (IBGE, Amobitec/Cebrap, TST) com hipóteses a validar com o comercial",motoristas:"Pesquisa de mercado · fontes públicas com link · revisada automaticamente toda segunda-feira",apps:"Pesquisa de mercado · regras e taxas de Uber e 99 · revisada automaticamente toda segunda-feira",mapa:"Áreas de risco do Google My Maps da Yalla (atualiza sozinho) · unidade Yalla e concorrentes por endereço público",periodo:"Dados reais · escolha qualquer intervalo de datas desde 2024 · Meta, Google, ChatGPT e GA4 dia a dia via Supermetrics",concorrencia:`Dados reais · planilha de concorrência online (Google Sheets) · consulta de ${COMP.date||"—"} (não muda com o mês)`,criativos:"Aguardando dados · veja abaixo o que enviar",seo:"Dados reais · Google Analytics 4 (yallacar.com.br) via Supermetrics",fontes:"Status de cada fonte de dados do painel",usuarios:"Somente administradores · gerencie quem entra no painel e o que cada pessoa vê",comparar:"Compare quaisquer dois meses, dois intervalos de datas ou todos os meses lado a lado",diario:"Dados reais · gasto diário da Meta, Google e ChatGPT via Supermetrics · reservas do site pelo GA4",
+  const BANNER={noticias:"Notícias públicas com link para a fonte · revisadas automaticamente toda segunda-feira",persona:"Persona do lead ideal · pesquisa pública, dados automáticos do painel (⚡) e hipóteses a validar com o comercial · você pode montar a sua",motoristas:"Pesquisa de mercado · fontes públicas com link · revisada automaticamente toda segunda-feira",apps:"Pesquisa de mercado · regras e taxas de Uber e 99 · revisada automaticamente toda segunda-feira",mapa:"Áreas de risco do Google My Maps da Yalla (atualiza sozinho) · unidade Yalla e concorrentes por endereço público · carros e aviões são animação",periodo:"Dados reais · escolha qualquer intervalo de datas desde 2024 · Meta, Google, ChatGPT e GA4 dia a dia via Supermetrics",concorrencia:`Dados reais · planilha de concorrência online (Google Sheets) · consulta de ${COMP.date||"—"} (não muda com o mês)`,criativos:"Aguardando dados · veja abaixo o que enviar",seo:"Dados reais · Google Analytics 4 (yallacar.com.br) via Supermetrics",fontes:"Status de cada fonte de dados do painel",usuarios:"Somente administradores · gerencie quem entra no painel e o que cada pessoa vê",comparar:"Compare quaisquer dois meses, dois intervalos de datas ou todos os meses lado a lado",diario:"Dados reais · gasto diário da Meta, Google e ChatGPT via Supermetrics · reservas do site pelo GA4",
     metas:"Realizado = dados reais · metas e orçamento editáveis (salvos neste navegador)",receita:"Contratos reais · premissas de receita editáveis",analise:"Resumo automático com dados reais · notas editáveis por mês",importar:"Importe os arquivos do mês ou lance canais sem exportação"};
   db.textContent=BANNER[state.page]||"Dados reais · Meta Ads, Google Ads, ChatGPT Ads, Yalla Digital, Chat Yalla e influenciadores";
   if(REAL_PAGES.includes(state.page)&&state.page!=="periodo"&&state.mTo&&PARTIAL[state.mTo])db.textContent=`Mês parcial (${PARTIAL[state.mTo]}) · mídia e site atualizados via Supermetrics · reservas, contratos, Chat Yalla e influenciadores de ${state.mTo} ainda não enviados — Aguardando arquivos`;
@@ -3665,7 +3687,245 @@ document.querySelectorAll("#themeSw button").forEach(b=>b.onclick=()=>{setTheme(
 setTheme(document.documentElement.dataset.theme||"navy");
 try{if(localStorage.getItem("yalla-explain")==="1"){document.body.classList.add("explain");}}catch(e){}
 
-Object.assign(P,APPS_PAGES,PERS_PAGES);
+/* ================= v4: zonas de força, trânsito animado, 3D, notícias, online, persona editável ================= */
+const MAPA_BRANDS=["#B07CFF","#4FD1C5","#FF8A5B","#5b8def","#F06CB4","#A7E92F","#FFD166","#8C95AB"],MAPA_ZKM=4;
+const mapaBrand=n=>String(n||"").split(" · ")[0].replace(/\s*\(.*?\)/,"").trim();
+function mapaBrands(){const o={};(MAPA.loc||[]).forEach((p,i)=>{if(p.kind!=="conc")return;const b=mapaBrand(p.name);(o[b]=o[b]||{name:b,units:[]}).units.push({...p,i});});
+  return Object.values(o).sort((a,b)=>b.units.length-a.units.length||a.name.localeCompare(b.name)).map((b,k)=>({...b,color:MAPA_BRANDS[k%MAPA_BRANDS.length]}));}
+function mapaBrandColor(p){if(p.kind!=="conc")return"#F2A314";const b=mapaBrands().find(x=>x.name===mapaBrand(p.name));return b?b.color:"#B07CFF";}
+function mapaCircle(lng,lat,km,n=56){const pts=[],dy=km/110.574,dx=km/(111.32*Math.cos(lat*Math.PI/180));for(let i=0;i<=n;i++){const a=i/n*Math.PI*2;pts.push([lng+Math.cos(a)*dx,lat+Math.sin(a)*dy]);}return[pts];}
+function mapaZonesGeo(){return{type:"FeatureCollection",features:mapaBrands().flatMap(b=>b.units.map(u=>({type:"Feature",properties:{brand:b.name,color:b.color},geometry:{type:"Polygon",coordinates:mapaCircle(u.lng,u.lat,MAPA_ZKM)}})))};}
+function mapaBrandsHTML(){const B=mapaBrands();if(!B.length)return"";const Y=(MAPA.loc||[]).find(l=>l.kind==="yalla"),mx=B[0].units.length;
+  return`<h3 style="margin-top:14px">Onde cada concorrente é forte</h3><div id="mapaBrands">${B.map(b=>{const near=Y?Math.min(...b.units.map(u=>mapaKm([u.lng,u.lat],[Y.lng,Y.lat]))):null,on=MAPA.zBrand===b.name;
+    const reg=b.units.map(u=>(u.name.split(" · ")[1]||"").trim()).filter(Boolean);
+    return`<button class="mp-li${on?" on":""}" style="display:block;width:100%;text-align:left;border-left:3px solid ${b.color}" onclick="mapaBrandFocus('${b.name.replace(/'/g,"\\'")}')" title="Ver só as zonas desta marca">
+      <b>${mapaEsc(b.name)}</b> <span style="color:var(--muted);font-weight:400">· ${b.units.length} ${b.units.length===1?"unidade":"unidades"}</span>
+      <div style="height:4px;border-radius:3px;background:var(--line);margin:5px 0 4px"><i style="display:block;height:4px;border-radius:3px;width:${Math.round(b.units.length/mx*100)}%;background:${b.color}"></i></div>
+      <small style="color:var(--muted);line-height:1.45;display:block">${reg.length?mapaEsc(reg.join(", "))+"<br>":""}${near!=null?(near<MAPA_ZKM?"<b style='color:var(--amber)'>Cobre a região da Yalla</b> · ":"")+"mais perto da Yalla: "+near.toFixed(1).replace(".",",")+" km":""}</small></button>`}).join("")}</div>
+  <p class="mp-sn" style="padding:8px 8px 0;line-height:1.5">Força = presença física: raio de ${MAPA_ZKM} km em volta de cada unidade com endereço público. Onde os círculos se somam, a marca está mais concentrada. Não mede participação de mercado nem frota.</p>`;}
+function mapaZones(on){MAPA.showZones=on==null?!MAPA.showZones:on;const m=MAPA.map;if(m&&MAPA.ready)["zone-fill","zone-line"].forEach(id=>m.getLayer(id)&&m.setLayoutProperty(id,"visibility",MAPA.showZones?"visible":"none"));mapaBtns();}
+function mapaBrandFocus(n){const m=MAPA.map,b=mapaBrands().find(x=>x.name===n);if(!m||!MAPA.ready||!b)return;if(MAPA.tour)mapaTour(false);MAPA.lastTouch=Date.now()-2500;
+  MAPA.zBrand=MAPA.zBrand===n?null:n;if(!MAPA.showZones)mapaZones(true);
+  const f=MAPA.zBrand?["==",["get","brand"],MAPA.zBrand]:null;["zone-fill","zone-line"].forEach(id=>m.getLayer(id)&&m.setFilter(id,f));
+  if(m.getLayer("zone-fill"))m.setPaintProperty("zone-fill","fill-opacity",MAPA.zBrand?.24:.12);
+  if(MAPA.zBrand){const bb=b.units.reduce((r,u)=>[[Math.min(r[0][0],u.lng-.05),Math.min(r[0][1],u.lat-.045)],[Math.max(r[1][0],u.lng+.05),Math.max(r[1][1],u.lat+.045)]],[[180,90],[-180,-90]]);
+    m.fitBounds(bb,{padding:60,pitch:REDUCED?0:48,maxZoom:13,duration:REDUCED?0:2200,essential:true});}
+  const el=document.getElementById("mapaBrands");if(el){const t=document.createElement("div");t.innerHTML=mapaBrandsHTML();const nb=t.querySelector("#mapaBrands");if(nb)el.innerHTML=nb.innerHTML;}}
+function mapaCity(){const m=MAPA.map,Y=(MAPA.loc||[]).find(l=>l.kind==="yalla");if(!m||!MAPA.ready)return;if(MAPA.tour)mapaTour(false);MAPA.lastTouch=Date.now()-2500;if(MAPA.popup)MAPA.popup.remove();
+  m.flyTo({center:Y?[Y.lng,Y.lat]:[-46.6566,-23.5613],zoom:16.4,pitch:REDUCED?0:74,bearing:m.getBearing()+40,duration:REDUCED?0:3200,essential:true});}
+/* ---- carros e aviões (animação ilustrativa) ---- */
+const VEH={cars:[],planes:[],key:"",acc:0,imgs:false};
+const VEH_FALL=[[[-46.745,-23.517],[-46.70,-23.511],[-46.66,-23.515],[-46.62,-23.523],[-46.58,-23.527],[-46.54,-23.520]],
+ [[-46.745,-23.530],[-46.722,-23.555],[-46.705,-23.585],[-46.697,-23.61],[-46.703,-23.64],[-46.716,-23.665]],
+ [[-46.638,-23.553],[-46.645,-23.575],[-46.656,-23.60],[-46.662,-23.625],[-46.672,-23.645],[-46.69,-23.67]],
+ [[-46.628,-23.548],[-46.59,-23.546],[-46.55,-23.541],[-46.50,-23.54],[-46.45,-23.542]],
+ [[-46.70,-23.607],[-46.68,-23.615],[-46.655,-23.618],[-46.635,-23.622]],
+ [[-46.662,-23.556],[-46.652,-23.563],[-46.643,-23.571]]];
+const VEH_AIR=[[-46.6564,-23.6261],[-46.4731,-23.4356],[-47.1345,-23.0074],[-43.1631,-22.9105],[-47.9186,-15.8697],[-43.9719,-19.6244],[-49.1758,-25.5285],[-51.1714,-29.9944],[-38.3225,-12.9086],[-34.9236,-8.1265],[-38.5326,-3.7763],[-60.0497,-3.0386]];
+function vehImg(kind,color){const s=64,c=document.createElement("canvas");c.width=c.height=s;const x=c.getContext("2d");x.translate(s/2,s/2);
+  if(kind==="plane"){x.fillStyle="#EEF1F7";x.strokeStyle="#0D1220";x.lineWidth=2;x.beginPath();x.moveTo(0,-28);x.quadraticCurveTo(5,-18,5,-8);x.lineTo(27,8);x.lineTo(27,14);x.lineTo(5,7);x.lineTo(4,20);x.lineTo(11,26);x.lineTo(11,29);x.lineTo(0,26);x.lineTo(-11,29);x.lineTo(-11,26);x.lineTo(-4,20);x.lineTo(-5,7);x.lineTo(-27,14);x.lineTo(-27,8);x.lineTo(-5,-8);x.quadraticCurveTo(-5,-18,0,-28);x.closePath();x.fill();x.stroke();}
+  else{x.fillStyle="rgba(0,0,0,.45)";x.beginPath();x.roundRect(-11,-20,26,44,8);x.fill();x.fillStyle=color;x.strokeStyle="#0D1220";x.lineWidth=2;x.beginPath();x.roundRect(-13,-23,26,44,8);x.fill();x.stroke();
+    x.fillStyle="rgba(13,18,32,.8)";x.beginPath();x.roundRect(-9,-12,18,9,3);x.fill();x.beginPath();x.roundRect(-9,7,18,7,3);x.fill();x.fillStyle="#fff8d6";x.fillRect(-10,-22,5,3);x.fillRect(5,-22,5,3);}
+  const d=x.getImageData(0,0,s,s);return{width:s,height:s,data:d.data};}
+const vehM=(a,b)=>mapaKm(a,b)*1000;
+function vehLine(c){const cum=[0];for(let i=1;i<c.length;i++)cum.push(cum[i-1]+vehM(c[i-1],c[i]));return{c,cum,len:cum[cum.length-1]};}
+function vehAt(L,s){let i=1;while(i<L.cum.length-1&&L.cum[i]<s)i++;const a=L.c[i-1],b=L.c[i],t=Math.max(0,Math.min(1,(s-L.cum[i-1])/((L.cum[i]-L.cum[i-1])||1)));
+  return{p:[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t],h:Math.atan2((b[0]-a[0])*Math.cos(a[1]*Math.PI/180),b[1]-a[1])*180/Math.PI};}
+function vehRoads(m){const z=m.getZoom();let lines=[],real=false;
+  if(z>=12.5&&m.getSource("openmaptiles")){try{const bd=m.getBounds(),seen=new Set();
+    m.querySourceFeatures("openmaptiles",{sourceLayer:"transportation",filter:["match",["get","class"],["motorway","trunk","primary","secondary"],true,false]}).forEach(f=>{
+      const g=f.geometry,parts=g.type==="LineString"?[g.coordinates]:g.type==="MultiLineString"?g.coordinates:[];
+      parts.forEach(c=>{if(c.length<2)return;const mid=c[c.length>>1];if(!bd.contains(mid))return;const k=mid[0].toFixed(4)+","+mid[1].toFixed(4);if(seen.has(k))return;seen.add(k);const L=vehLine(c);if(L.len>180)lines.push(L);});});
+    lines.sort((a,b)=>b.len-a.len);lines=lines.slice(0,60);real=lines.length>0;}catch(e){lines=[];}}
+  if(!lines.length&&z>=9.3)lines=VEH_FALL.map(vehLine);
+  return{lines,real};}
+function vehBuild(m){const R=vehRoads(m),B=mapaBrands(),n=B.length+1;VEH.real=R.real;
+  VEH.cars=R.lines.flatMap((L,i)=>{const k=R.real?(L.len>1200?2:1):4;return[...Array(k)].map((_,j)=>{const bi=(i*3+j*5)%(n+1);return{L,s:Math.random()*L.len,dir:(i+j)%2?1:-1,v:R.real?(34+Math.random()*30):(260+Math.random()*160),img:"car-"+(bi>=B.length?"y":bi%MAPA_BRANDS.length)};});});}
+function vehPlane(from){const a=from||VEH_AIR[Math.random()<.6?(Math.random()<.5?0:1):Math.floor(Math.random()*VEH_AIR.length)];let b=a;while(b===a)b=VEH_AIR[Math.random()<.45?(Math.random()<.5?0:1):Math.floor(Math.random()*VEH_AIR.length)];
+  const km=mapaKm(a,b);return{a,b,t:from?0:Math.random(),dur:Math.max(26,Math.min(120,22+km/14))};}
+function mapaVehInit(m){
+  if(!VEH.imgs){try{MAPA_BRANDS.forEach((c,i)=>m.addImage("car-"+i,vehImg("car",c)));m.addImage("car-y",vehImg("car","#F2A314"));m.addImage("plane",vehImg("plane"));VEH.imgs=true;}catch(e){return;}}
+  m.addSource("veh",{type:"geojson",data:{type:"FeatureCollection",features:[]}});const v=MAPA.showVeh&&!REDUCED?"visible":"none";
+  m.addLayer({id:"veh-cars",type:"symbol",source:"veh",minzoom:9.3,filter:["==",["get","k"],"c"],layout:{visibility:v,"icon-image":["get","img"],"icon-rotate":["get","rot"],"icon-rotation-alignment":"map","icon-pitch-alignment":"map","icon-allow-overlap":true,"icon-ignore-placement":true,"icon-size":["interpolate",["linear"],["zoom"],9.3,.2,13,.3,16,.55,18,1]}},m.getLayer("bld-3d")?"bld-3d":(m.getLayer("risk-fill")?"risk-fill":undefined));
+  m.addLayer({id:"veh-planes",type:"symbol",source:"veh",filter:["==",["get","k"],"p"],layout:{visibility:v,"icon-image":"plane","icon-rotate":["get","rot"],"icon-rotation-alignment":"map","icon-allow-overlap":true,"icon-ignore-placement":true,"icon-size":["interpolate",["linear"],["zoom"],2,.28,6,.42,11,.7,16,1.1]}});
+  VEH.planes=[...Array(11)].map(()=>vehPlane());VEH.key="";
+  let tm=null;m.on("moveend",()=>{clearTimeout(tm);tm=setTimeout(()=>{VEH.key="";},350);});m.on("sourcedata",e=>{if(e.sourceId==="openmaptiles"&&e.isSourceLoaded&&!VEH.real)VEH.key="";});}
+function vehStep(m,dt){if(!m.getSource("veh"))return;VEH.acc+=dt;const z=m.getZoom(),c=m.getCenter(),key=Math.round(z*2)+"|"+c.lng.toFixed(2)+"|"+c.lat.toFixed(2);
+  if(VEH.key!==key&&!m.isMoving()){VEH.key=key;vehBuild(m);}
+  const sec=dt/1000;VEH.cars.forEach(k=>{k.s+=k.v*sec*k.dir;if(k.s>k.L.len)k.s-=k.L.len;if(k.s<0)k.s+=k.L.len;});
+  VEH.planes.forEach((p,i)=>{p.t+=sec/p.dur;if(p.t>=1)VEH.planes[i]=vehPlane(p.b);});
+  if(VEH.acc<40)return;VEH.acc=0;const F=[];
+  if(z>=9.3)VEH.cars.forEach(k=>{const o=vehAt(k.L,k.s);F.push({type:"Feature",properties:{k:"c",img:k.img,rot:o.h+(k.dir<0?180:0)},geometry:{type:"Point",coordinates:o.p}});});
+  VEH.planes.forEach(p=>{const e=p.t,x=p.a[0]+(p.b[0]-p.a[0])*e,y=p.a[1]+(p.b[1]-p.a[1])*e;F.push({type:"Feature",properties:{k:"p",rot:Math.atan2((p.b[0]-p.a[0])*Math.cos(y*Math.PI/180),p.b[1]-p.a[1])*180/Math.PI},geometry:{type:"Point",coordinates:[x,y]}});});
+  m.getSource("veh").setData({type:"FeatureCollection",features:F});}
+function mapaVeh(){MAPA.showVeh=!MAPA.showVeh;const m=MAPA.map;if(m&&MAPA.ready)["veh-cars","veh-planes"].forEach(id=>m.getLayer(id)&&m.setLayoutProperty(id,"visibility",MAPA.showVeh&&!REDUCED?"visible":"none"));const n=document.getElementById("mapaVehNote");if(n)n.style.display=MAPA.showVeh&&!REDUCED?"":"none";mapaBtns();}
+function mapaExtra(m,glyphs){
+  if(MAPA.showZones==null)MAPA.showZones=true;if(MAPA.showVeh==null)MAPA.showVeh=true;
+  m.addSource("zones",{type:"geojson",data:mapaZonesGeo()});const zv=MAPA.showZones?"visible":"none";
+  m.addLayer({id:"zone-fill",type:"fill",source:"zones",layout:{visibility:zv},paint:{"fill-color":["get","color"],"fill-opacity":.12}},"loc-halo");
+  m.addLayer({id:"zone-line",type:"line",source:"zones",layout:{visibility:zv},paint:{"line-color":["get","color"],"line-width":1.2,"line-opacity":.75,"line-dasharray":[2,2]}},"loc-halo");
+  m.setPaintProperty("loc-conc","circle-color",["coalesce",["get","color"],"#B07CFF"]);
+  if(m.getSource("openmaptiles")){const bf=m.getLayer("bld-3d")?"bld-3d":undefined,flt=["match",["get","class"],["motorway","trunk","primary"],true,false];
+    try{m.addLayer({id:"road-glow",type:"line",source:"openmaptiles","source-layer":"transportation",minzoom:10.5,filter:flt,layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":"#F2A314","line-opacity":["interpolate",["linear"],["zoom"],10.5,.08,15,.2],"line-width":["interpolate",["exponential",1.6],["zoom"],10.5,2,16,26],"line-blur":["interpolate",["linear"],["zoom"],10.5,2,16,12]}},bf);
+      m.addLayer({id:"road-core",type:"line",source:"openmaptiles","source-layer":"transportation",minzoom:10.5,filter:flt,layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":"#ffd98a","line-opacity":.5,"line-width":["interpolate",["exponential",1.5],["zoom"],10.5,.4,16,2.6]}},bf);}catch(e){}
+    if(m.getLayer("bld-3d")){try{m.setLayerZoomRange("bld-3d",12.4,24);const H=["*",1.15,["coalesce",["get","render_height"],8]];
+      m.setPaintProperty("bld-3d","fill-extrusion-height",["interpolate",["linear"],["zoom"],12.4,0,13.4,H]);
+      m.setPaintProperty("bld-3d","fill-extrusion-color",["interpolate",["linear"],["coalesce",["get","render_height"],8],0,"#1a2540",25,"#2a3a61",70,"#3f5687",160,"#6f8fd0"]);
+      m.setPaintProperty("bld-3d","fill-extrusion-opacity",.94);m.setLight({anchor:"viewport",color:"#e8eeff",intensity:.5,position:[1.4,215,28]});}catch(e){}}}
+  try{m.setMaxPitch(80);}catch(e){}
+  try{m.setSky({"sky-color":"#0b1730","horizon-color":"#2a416f","fog-color":"#0a1020","sky-horizon-blend":.7,"horizon-fog-blend":.6,"fog-ground-blend":.35});}catch(e){}
+  try{mapaVehInit(m);}catch(e){console.warn("veh",e);}
+}
+/* ---------- notícias de marketing e concorrentes ---------- */
+const NEWS={st:"idle",d:null,err:""};
+async function newsLoad(){if(NEWS.st==="loading"||NEWS.st==="ok")return;NEWS.st="loading";
+  try{const r=await fetch("dados/noticias.json?v="+Math.floor(Date.now()/36e5),{cache:"no-cache"});if(!r.ok)throw new Error("erro "+r.status);NEWS.d=await r.json();NEWS.st="ok";try{localStorage.setItem("yalla_news_v1",JSON.stringify(NEWS.d));}catch(e){}}
+  catch(e){try{NEWS.d=JSON.parse(localStorage.getItem("yalla_news_v1")||"null");}catch(_){}NEWS.st=NEWS.d?"ok":"err";NEWS.err=e.message;}
+  if(state.page==="noticias")render();}
+Object.assign(apTagC,{Marca:"#F06CB4",Growth:"#4FD1C5",Concorrente:"#B07CFF"});
+function newsSet(f){(state.news=state.news||{}).f=f;render();}
+const NEWS_PAGES={noticias(){
+  if(NEWS.st==="idle")newsLoad();const d=NEWS.d;
+  if(!d)return NEWS.st==="err"?`<div class="empty" style="padding:50px">Não foi possível carregar as notícias (${mapaEsc(NEWS.err)}).<br><button class="btn" style="margin-top:12px" onclick="NEWS.st='idle';newsLoad()">Tentar de novo</button></div>`:`<div class="empty" style="padding:50px">Carregando as notícias…</div>`;
+  const S=state.news||(state.news={f:"all"}),I=d.itens||[],whos=[...new Set(I.filter(n=>n.who).map(n=>n.who))];
+  const L=I.filter(n=>S.f==="all"||n.tag===S.f||n.who===S.f);
+  const bt=(k,l,c)=>`<button class="btn" style="height:32px;font-size:12px;${S.f===k?`border-color:${c||"var(--y)"};color:${c||"var(--y)"}`:""}" onclick="newsSet('${k.replace(/'/g,"\\'")}')">${mapaEsc(l)} <span style="opacity:.6">${k==="all"?I.length:I.filter(n=>n.tag===k||n.who===k).length}</span></button>`;
+  const cnt=t=>I.filter(n=>n.tag===t).length;
+  return apHead(d)+`<div class="grid kpis k4" style="margin-bottom:14px">${kpi({lbl:"Marketing de marca",v:[cnt("Marca"),null],f:v=>num(v),sub:"branding e posicionamento"})}${kpi({lbl:"Growth e mídia",v:[cnt("Growth"),null],f:v=>num(v),sub:"plataformas e performance"})}${kpi({lbl:"Concorrentes",v:[cnt("Concorrente"),null],f:v=>num(v),sub:whos.length+" marcas com notícia"})}${kpi({lbl:"Mercado de locação",v:[cnt("Mercado"),null],f:v=>num(v),sub:"setor e regulação"})}</div>
+  <div class="card" style="margin-bottom:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">${bt("all","Tudo")}${["Marca","Growth","Concorrente","Mercado"].map(t=>bt(t,t==="Marca"?"Marketing de marca":t==="Growth"?"Growth":t==="Concorrente"?"Concorrentes":"Mercado",apTagC[t])).join("")}<span style="width:1px;height:22px;background:var(--line2);margin:0 4px"></span>${whos.map(w=>bt(w,w,"#B07CFF")).join("")}</div>
+  ${T("O que saiu",L.length?`<div class="tbl-wrap ap-t"><table><thead><tr><th>Quando</th><th></th><th>O que aconteceu</th><th>O que significa para a Yalla</th><th>Fonte</th></tr></thead><tbody>${L.map(n=>`<tr><td style="white-space:nowrap;color:var(--muted)">${mapaEsc(n.d)}</td><td>${apTag(n.tag)}${n.who?`<div style="font-size:11px;color:var(--muted);margin-top:5px;white-space:nowrap">${mapaEsc(n.who)}</div>`:""}</td><td><b>${mapaEsc(n.t)}</b></td><td style="color:var(--muted)">${mapaEsc(n.imp||"")}</td><td>${apA(n.f,n.u)}</td></tr>`).join("")}</tbody></table></div>`:'<div class="empty">Nada neste filtro.</div>')}
+  ${(d.semNoticia||[]).length?`<p style="font-size:12px;color:var(--muted);line-height:1.6;margin-top:12px">Sem notícia pública recente encontrada: ${d.semNoticia.map(mapaEsc).join(", ")}. São locadoras menores, que quase não aparecem na imprensa; a varredura de preços delas continua na aba Concorrência.</p>`:""}`;}};
+/* ---------- quem está online ---------- */
+const ONL={list:[],t:null,last:0};
+const onlAdmin=()=>AUTH_ON&&SESS&&SESS.user&&SESS.user.role==="admin";
+async function onlPing(){if(!AUTH_ON||!SESS||!SESS.token||document.hidden||Date.now()-ONL.last<4000)return;ONL.last=Date.now();
+  try{const r=await rpc("panel_ping",{p_token:SESS.token,p_page:state.page||""});ONL.list=Array.isArray(r)?r:[];ONL.err="";}catch(e){ONL.err=e.message;}onlDraw();}
+function onlStart(){if(ONL.t||!AUTH_ON)return;onlPing();ONL.t=setInterval(onlPing,45000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)onlPing();});window.addEventListener("hashchange",()=>setTimeout(onlPing,600));}
+const onlAgo=at=>{const s=Math.max(0,(Date.now()-new Date(at).getTime())/1000);return s<100?"agora":s<3600?"há "+Math.round(s/60)+" min":s<86400?"há "+Math.round(s/3600)+" h":"há "+Math.round(s/86400)+" d";};
+const onlPage=id=>{const p=PAGES.find(x=>x.id===id);return p?p.name:(id||"");};
+function onlCardHTML(){const L=ONL.list||[],on=L.filter(x=>x.on);
+  if(!AUTH_ON)return'<div class="mp-sn">A lista de quem está online funciona na versão publicada do painel (precisa do login).</div>';
+  if(ONL.err&&!L.length)return`<div class="mp-sn">Indisponível agora (${mapaEsc(ONL.err)}).</div>`;
+  if(!L.length)return'<div class="mp-sn">Carregando…</div>';
+  return`<div class="tbl-wrap"><table><thead><tr><th></th><th>Pessoa</th><th>Perfil</th><th>Onde está</th><th>Última atividade</th></tr></thead><tbody>${L.map(x=>`<tr><td style="width:22px"><i title="${x.on?"online":"offline"}" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${x.on?"var(--green)":"var(--line2)"};${x.on?"box-shadow:0 0 0 4px var(--green-soft)":""}"></i></td><td><b>${mapaEsc(x.name)}</b>${x.me?' <span style="color:var(--muted)">(você)</span>':""}</td><td style="color:var(--muted)">${x.role==="admin"?"Administrador":"Visualização"}</td><td>${mapaEsc(onlPage(x.page))}</td><td style="color:${x.on?"var(--green)":"var(--muted)"}">${x.on?"online agora":onlAgo(x.at)}</td></tr>`).join("")}</tbody></table></div>
+  <p class="mp-sn" style="padding:8px 0 0">${on.length} online agora · conta como online quem teve atividade nos últimos 100 segundos com o painel aberto e visível. A lista mostra os últimos 7 dias e atualiza sozinha a cada 45 segundos.</p>`;}
+function onlDraw(){const c=document.getElementById("onlCard");if(c)c.innerHTML=onlCardHTML();
+  const b=document.getElementById("userBox");if(!b||!onlAdmin())return;let p=document.getElementById("onlPill");
+  if(!p){p=document.createElement("button");p.id="onlPill";p.className="btn";p.style.cssText="height:30px;font-size:11.5px;display:inline-flex;align-items:center;gap:6px";p.onclick=()=>{location.hash="#usuarios";};b.insertBefore(p,b.firstChild);}
+  const n=(ONL.list||[]).filter(x=>x.on).length;p.title="Quem está usando o painel agora: "+((ONL.list||[]).filter(x=>x.on).map(x=>x.name).join(", ")||"só você");
+  p.innerHTML=`<i style="width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px var(--green-soft)"></i>${n||1} online`;}
+/* ---------- persona: montar manualmente + automático ---------- */
+let PERS=PERS_BASE.slice();
+const PERS_ST={custom:null,at:null,mine:false,team:null,dirty:false,msg:""};
+function persAuto(){const out=[],R=REAL.res||{},all=(typeof allRealMonths==="function"?allRealMonths():Object.keys(R)),full=all.filter(m=>!(typeof PARTIAL!=="undefined"&&PARTIAL[m]));
+  const add=(c,t,w,x,f)=>out.push({c,t,w,k:"a",x,f}),p=(a,b)=>b?Math.round(a/b*100):0;
+  try{const ms=full.filter(m=>R[m]&&R[m].total).slice(-3);
+   if(ms.length){const lab=ms.length>1?ms[0]+" a "+ms[ms.length-1]:ms[0],src="Reservas Yalla Digital · "+lab;
+    const sum=k=>{const o={};ms.forEach(m=>Object.entries(R[m][k]||{}).forEach(([a,v])=>o[a]=(o[a]||0)+v));return o;},tot=o=>Object.values(o).reduce((a,b)=>a+b,0),top=o=>Object.entries(o).sort((a,b)=>b[1]-a[1]),short=s=>s.split(" ").slice(0,2).join(" ");
+    const days=["segunda","terça","quarta","quinta","sexta","sábado","domingo"],H=days.map((_,d)=>[...Array(12)].map((_,h)=>ms.reduce((s,m)=>s+(((R[m].heat||[])[d]||[])[h]||0),0)));
+    const flat=H.flatMap((r,d)=>r.map((v,h)=>({v,d,h}))).sort((a,b)=>b.v-a.v),ht=flat.reduce((s,x)=>s+x.v,0);
+    if(ht>50){const pk=flat[0];add("rotina",`Reserva ${days[pk.d]} às ${pk.h*2}h`,2,`Horário com mais pedidos de reserva no site: ${days[pk.d]}, entre ${pk.h*2}h e ${pk.h*2+2}h (${num(pk.v)} pedidos no período).`,src);
+      const com=H.reduce((s,r)=>s+r.slice(4,9).reduce((a,b)=>a+b,0),0),fds=H.slice(5).flat().reduce((a,b)=>a+b,0);
+      add("rotina",`${p(com,ht)}% pedem entre 8h e 18h`,2,`${p(com,ht)}% dos pedidos de reserva chegam em horário comercial; ${p(fds,ht)}% chegam no fim de semana.`,src);}
+    const M=top(sum("modelos"));if(M.length)add("busca",`Quer ${short(M[0][0])}`,3,`Modelo mais pedido: ${M[0][0]}, com ${num(M[0][1])} reservas (${p(M[0][1],tot(sum("modelos")))}% do total). Em seguida: ${M.slice(1,3).map(x=>short(x[0])).join(" e ")}.`,src);
+    const C=top(sum("modelosContr"));if(C.length)add("gatilho",`Fecha mais com ${short(C[0][0])}`,2,`Modelo com mais contratos: ${C[0][0]} (${num(C[0][1])} contratos). Em seguida: ${C.slice(1,3).map(x=>short(x[0])).join(" e ")}.`,src);
+    const D=top(sum("modalidade"));if(D.length){const nm=/^trust$/i.test(D[0][0])?"o Trust":D[0][0];add("busca",`${p(D[0][1],tot(sum("modalidade")))}% procuram ${nm}`,3,`Produto mais procurado nas reservas: ${D[0][0]}, com ${num(D[0][1])} de ${num(tot(sum("modalidade")))} pedidos.`,src);}
+    const S=sum("statusLead"),st=tot(S);if(st){if(S["Reprovado"])add("trava",`${p(S["Reprovado"],st)}% reprovados na análise`,3,`${num(S["Reprovado"])} de ${num(st)} leads com status foram reprovados na análise de cadastro.`,src);
+      if(S["Lead Perdido"])add("trava",`${p(S["Lead Perdido"],st)}% somem no caminho`,2,`${num(S["Lead Perdido"])} leads terminaram como "Lead Perdido": pediram a reserva e não seguiram.`,src);
+      if(S["Contratos Comissionáveis"])add("gatilho",`${p(S["Contratos Comissionáveis"],st)}% viram contrato`,2,`${num(S["Contratos Comissionáveis"])} de ${num(st)} leads com status chegaram a contrato comissionável.`,src);}
+    const O=sum("origem");if(O["Landing"])add("onde",`${p(O["Landing"],tot(O))}% vêm pela landing do site`,2,`Origem das reservas: ${num(O["Landing"])} pela landing page e ${num(O["Interna"]||0)} internas.`,src);}}catch(e){}
+  try{const G=(REAL.ga&&REAL.ga.months)||{},gm=full.filter(m=>G[m]&&G[m].sessions).slice(-1)[0];
+   if(gm){const g=G[gm],ch=g.channels||{},org=(ch["Organic Search"]||[0])[0],ps=(ch["Paid Social"]||[0])[0];
+    if(org)add("onde",`${p(org,g.sessions)}% chegam pelo Google orgânico`,3,`${num(org)} de ${num(g.sessions)} visitas ao site em ${gm} vieram da busca orgânica.`,"GA4 · "+gm);
+    if(ps)add("onde",`${p(ps,g.sessions)}% vêm de anúncio no Instagram`,2,`${num(ps)} visitas em ${gm} vieram de social pago (Instagram e Facebook).`,"GA4 · "+gm);}}catch(e){}
+  try{const A={},gms=Object.keys(REAL.google||{}).filter(m=>(REAL.google[m].age||[]).length);gms.forEach(m=>REAL.google[m].age.forEach(a=>A[a.a]=(A[a.a]||0)+(a.impr||0)));
+   const ta=Object.entries(A).sort((a,b)=>b[1]-a[1]),tt=ta.reduce((s,x)=>s+x[1],0);if(tt>500)add("quem",`${ta[0][0]} anos no Google Ads`,1,`Faixa de idade com mais impressões nos anúncios do Google (${p(ta[0][1],tt)}% das impressões com idade conhecida). Reflete também a segmentação das campanhas.`,"Google Ads · "+gms.length+" meses");}catch(e){}
+  try{const mm=full.filter(m=>REAL.meta[m]&&(REAL.meta[m].rows||[]).length).slice(-1)[0];if(mm){const rows=REAL.meta[mm].rows.filter(r=>/lead/i.test(r.rt||"")&&r.leads>0),sp=rows.reduce((s,r)=>s+(r.spend||0),0),ld=rows.reduce((s,r)=>s+r.leads,0);
+    if(ld>20)add("onde",`Lead de formulário a ${brl(sp/ld,2)}`,2,`Formulários da Meta em ${mm}: ${num(ld)} leads com ${brl(sp)} de investimento.`,"Meta Ads · "+mm);}}catch(e){}
+  try{const dy=REAL.daily,ci=dy.cols.indexOf("wpp"),ks=Object.keys(dy.days).sort().slice(-30),v=ks.map(k=>dy.days[k][ci]||0),s=v.reduce((a,b)=>a+b,0);if(ci>=0&&s>30)add("rotina",`${num(Math.round(s/ks.length))} cliques no WhatsApp por dia`,2,`Média dos últimos ${ks.length} dias com dado: ${num(s)} cliques no botão de WhatsApp do site.`,"GA4 · eventos do site");}catch(e){}
+  return out;}
+function persBuild(){const S=persState(),base=(PERS_ST.custom||PERS_BASE).map(p=>({...p}));PERS_ST.nBase=base.length;
+  const net=((APPS.d&&APPS.d.persona)||[]).filter(n=>n&&n.t&&PERS_CATS[n.c]&&!base.some(b=>normTxt(b.t)===normTxt(n.t))).map(n=>({c:n.c,t:String(n.t).slice(0,44),w:[1,2,3].includes(n.w)?n.w:2,k:"d",x:n.x||"",f:n.f||"pesquisa semanal",net:true}));
+  PERS=S.auto===false?base:[...base,...persAuto(),...net];}
+function persNorm(a){return(Array.isArray(a)?a:[]).filter(p=>p&&typeof p.t==="string"&&p.t.trim()&&PERS_CATS[p.c]).slice(0,60).map(p=>({c:p.c,t:p.t.trim().slice(0,44),w:[1,2,3].includes(+p.w)?+p.w:2,k:p.k==="d"?"d":"h",x:String(p.x||"").slice(0,300),f:String(p.f||"").slice(0,80)}));}
+async function persLoad(){let loc=null;try{loc=JSON.parse(localStorage.getItem("yalla_persona_v1")||"null");}catch(e){}
+  if(loc&&loc.list){PERS_ST.custom=persNorm(loc.list);PERS_ST.at=loc.at;PERS_ST.mine=!!loc.mine;}
+  if(AUTH_ON&&SESS&&SESS.token){try{const r=await rpc("panel_kv_get",{p_token:SESS.token,p_key:"persona"});if(r&&r.value&&r.value.list){PERS_ST.team={list:persNorm(r.value.list),at:r.at};if(!(PERS_ST.mine&&!onlAdmin())){PERS_ST.custom=PERS_ST.team.list.map(p=>({...p}));PERS_ST.at=r.at;PERS_ST.mine=false;}}}catch(e){}}
+  if(state.page==="persona")render();}
+function persWork(){if(!PERS_ST.custom)PERS_ST.custom=PERS_BASE.map(p=>({c:p.c,t:p.t,w:p.w,k:p.k,x:p.x,f:p.f||""}));return PERS_ST.custom;}
+function persEditToggle(){const S=persState();S.edit=!S.edit;S.sel=null;PERS_ST.msg="";render();}
+function persAutoToggle(){const S=persState();S.auto=S.auto===false;render();}
+function persClick(i){const S=persState();if(!S.edit){persTip(i);return;}
+  if(i<PERS_ST.nBase){persWork();S.sel=i;render();}else{persTip(i);const e=document.getElementById("psTip");if(e)e.innerHTML+=`<div style="margin-top:12px"><button class="btn" style="height:32px;font-size:12px" onclick="persPin(${i})">📌 Fixar na minha montagem</button></div>`;}}
+function persPin(i){const p=PERS[i];if(!p)return;persWork().push({c:p.c,t:p.t,w:p.w,k:"d",x:p.x,f:p.f||""});PERS_ST.dirty=true;PERS_ST.msg="Fixada. Salve para manter.";render();}
+function persFormRead(){const g=id=>document.getElementById(id);return{c:g("pfC").value,t:g("pfT").value.trim().slice(0,44),w:+g("pfW").value,k:g("pfK").value,x:g("pfX").value.trim().slice(0,300),f:g("pfF").value.trim().slice(0,80)};}
+function persFormSave(){const S=persState(),v=persFormRead();if(!v.t){PERS_ST.msg="Escreva a característica.";render();return;}const L=persWork();
+  if(S.sel!=null&&L[S.sel])L[S.sel]=v;else L.push(v);S.sel=null;PERS_ST.dirty=true;PERS_ST.msg="Alterado. Salve para manter.";persState().run++;render();}
+function persDel(){const S=persState(),L=persWork();if(S.sel!=null&&L[S.sel]){L.splice(S.sel,1);S.sel=null;PERS_ST.dirty=true;PERS_ST.msg="Removida. Salve para manter.";render();}}
+function persNew(){persState().sel=null;render();const t=document.getElementById("pfT");if(t)t.focus();}
+async function persSave(){const L=persNorm(persWork()),at=new Date().toISOString(),adm=onlAdmin();
+  try{localStorage.setItem("yalla_persona_v1",JSON.stringify({list:L,at,mine:!adm}));}catch(e){}
+  PERS_ST.custom=L;PERS_ST.at=at;PERS_ST.mine=!adm;PERS_ST.dirty=false;
+  if(adm){try{await rpc("panel_kv_set",{p_token:SESS.token,p_key:"persona",p_value:{list:L}});PERS_ST.team={list:L,at};PERS_ST.msg="Salvo para toda a equipe.";}catch(e){PERS_ST.msg="Salvo só neste navegador: "+e.message;}}
+  else PERS_ST.msg=AUTH_ON?"Salvo neste navegador. Só o administrador grava a versão da equipe.":"Salvo neste navegador (versão local, sem login).";
+  render();}
+async function persReset(){if(!confirm(PERS_ST.mine&&PERS_ST.team?"Descartar a sua montagem e voltar à versão da equipe?":"Voltar à persona padrão? A montagem atual será apagada."))return;
+  try{localStorage.removeItem("yalla_persona_v1");}catch(e){}
+  if(PERS_ST.mine&&PERS_ST.team){PERS_ST.custom=PERS_ST.team.list.map(p=>({...p}));PERS_ST.at=PERS_ST.team.at;}
+  else{PERS_ST.custom=null;PERS_ST.at=null;if(onlAdmin()){try{await rpc("panel_kv_set",{p_token:SESS.token,p_key:"persona",p_value:null});PERS_ST.team=null;}catch(e){}}}
+  PERS_ST.mine=false;PERS_ST.dirty=false;PERS_ST.msg="Restaurada.";persState().sel=null;render();}
+function persLayout(){ /* encaixe sem sobreposição: do mais importante para o menos, do centro para fora */
+  const act=persState().cat,items=PERS.map((p,i)=>({...p,i})).sort((a,b)=>b.w-a.w||a.i-b.i),dense=items.length>38,W=PERS_ST.W||Math.max(320,Math.min(820,innerWidth-(innerWidth>1100?630:60)));
+  for(let Hh=dense?760:660;;Hh+=50){const r=persPack(items,act,dense,W,Hh);if(r||Hh>2600){const o=r||persPack(items,act,dense,W,Hh,true);o.H=Hh;return o;}}}
+function persPack(items,act,dense,W,Hh,force){const placed=[],out=[];
+  const hit=(x,y,w,h)=>(Math.abs(x)<w+95/W*100&&Math.abs(y)<h+125/Hh*100)||placed.some(b=>Math.abs(x-b.x)<w+b.w+.9&&Math.abs(y-b.y)<h+b.h+1);
+  const cx=persPack.cx||(persPack.cx=document.createElement("canvas").getContext("2d")),small=W<560;
+  items.forEach((p,n)=>{const ring=p.w===3?0:p.w===2?1:2,fs=small?11:dense?(ring===0?12.5:11.5):(ring===0?14:ring===2?11.5:12.5);cx.font=(ring===0&&!small?700:600)+" "+fs+"px Montserrat";
+    const px=cx.measureText((p.k==="a"?"⚡ ":"")+p.t).width+(small?20:dense?(ring===0?28:24):(ring===0?34:28)),w=px/W*50,h=(small?30:dense?(ring===0?36:32):(ring===0?44:36))/Hh*50;
+    let best=null;const a0=n*2.39996;
+    for(let r=(ring===0?18:ring===1?24:30);r<=74&&!best;r+=2){for(let k=0;k<32;k++){const a=a0+k/32*Math.PI*2,x=Math.cos(a)*r,y=Math.sin(a)*r;if(Math.abs(x)+w>49||Math.abs(y)+h>48)continue;if(!hit(x,y,w,h)){best={x,y};break;}}}
+    if(!best)for(let y=-47+h;y<=47-h&&!best;y+=1.5)for(let x=-48.5+w;x<=48.5-w;x+=1.5)if(!hit(x,y,w,h)){best={x,y};break;}
+    if(!best){if(!force){out.fail=true;return;}best={x:(n%2?1:-1)*(48-w),y:46-h};}
+    placed.push({x:best.x,y:best.y,w,h});out.push({...p,x:best.x,y:best.y,ring,dim:act!=="all"&&p.c!==act});});
+  return out.fail?null:out;}
+function persStage(){const S=persState(),L=persLayout(),big=PERS.length>38;
+  return`<div class="ps-stage${S.edit?" edit":""}${big?" dense":""}" id="psStage" data-run="${S.run}" style="${big?`height:${L.H+40}px;min-height:${L.H+40}px`:""}">
+    <div class="ps-orbit o1"></div><div class="ps-orbit o2"></div><div class="ps-orbit o3"></div>
+    <div class="ps-core"><div class="ps-av">${persAvatar()}</div><div class="ps-name">O lead ideal</div><div class="ps-sub">motorista de app em São Paulo</div></div>
+    ${L.map((p,n)=>{const col=PERS_CATS[p.c][1];return`<button class="ps-chip r${p.ring}${p.dim?" dim":""}${p.k==="a"?" auto":""}${S.edit&&S.sel===p.i?" sel":""}" style="--x:${p.x.toFixed(1)}%;--y:${p.y.toFixed(1)}%;--c:${col};--d:${(.4+n*.07).toFixed(2)}s;--f:${(5+((p.i*7)%5)).toFixed(0)}s;--fd:${(-(p.i%7)*.7).toFixed(1)}s" onmouseenter="persTip(${p.i})" onfocus="persTip(${p.i})" onclick="persClick(${p.i})"><span>${p.k==="a"?"⚡ ":""}${mapaEsc(p.t)}</span></button>`}).join("")}
+  </div>`;}
+function persTip(i){const p=PERS[i],e=document.getElementById("psTip");if(!p||!e)return;const c=PERS_CATS[p.c];
+  const k=p.k==="a"?`<span class="ps-k a">Automático</span> <span style="font-size:11.5px;color:var(--dim)">${mapaEsc(p.f||"dados do painel")}</span>`:p.k==="d"?`<span class="ps-k d">Dado</span> <span style="font-size:11.5px;color:var(--dim)">${mapaEsc(p.f||"")}${p.net?" · pesquisa semanal":""}</span>`:`<span class="ps-k h">Hipótese</span> <span style="font-size:11.5px;color:var(--dim)">validar com o comercial</span>`;
+  e.innerHTML=`<span style="font:700 10px Montserrat;letter-spacing:.1em;text-transform:uppercase;color:${c[1]}">${c[0]}</span><b style="display:block;font:700 16px Montserrat;margin:4px 0 6px;color:var(--txt)">${mapaEsc(p.t)}</b><span style="color:var(--muted);line-height:1.6">${mapaEsc(p.x||"")}</span><div style="margin-top:10px">${k}</div>`;}
+function persEditorHTML(){const S=persState(),L=persWork(),cur=S.sel!=null?L[S.sel]:null,v=cur||{c:"quem",t:"",w:2,k:"h",x:"",f:""},adm=onlAdmin();
+  const inp="width:100%;background:var(--navy3);border:1px solid var(--line2);border-radius:8px;color:var(--txt);padding:8px 10px;font:500 12.5px Montserrat,sans-serif";
+  const lb=(t,f)=>`<label for="${f}" style="display:block;font:700 10px Montserrat;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:10px 0 4px">${t}</label>`;
+  return`<div class="card"><h3>${cur?"Editar característica":"Nova característica"}</h3>
+    <p style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:2px">Clique em uma característica no palco para editar ou remover. As marcadas com ⚡ são calculadas pelo painel: clique para fixar na sua montagem.</p>
+    ${lb("Característica","pfT")}<input id="pfT" maxlength="44" value="${mapaEsc(v.t)}" placeholder="Ex.: Quer carro automático" style="${inp}">
+    ${lb("Grupo","pfC")}<select id="pfC" style="${inp}">${Object.entries(PERS_CATS).map(([k,[l]])=>`<option value="${k}"${v.c===k?" selected":""}>${l}</option>`).join("")}</select>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div>${lb("Peso","pfW")}<select id="pfW" style="${inp}">${[[3,"Central"],[2,"Importante"],[1,"Complementar"]].map(([n,l])=>`<option value="${n}"${v.w===n?" selected":""}>${l}</option>`).join("")}</select></div>
+    <div>${lb("Tipo","pfK")}<select id="pfK" style="${inp}"><option value="h"${v.k!=="d"?" selected":""}>Hipótese</option><option value="d"${v.k==="d"?" selected":""}>Dado</option></select></div></div>
+    ${lb("Explicação","pfX")}<textarea id="pfX" rows="3" maxlength="300" style="${inp};resize:vertical">${mapaEsc(v.x)}</textarea>
+    ${lb("Fonte (se for dado)","pfF")}<input id="pfF" maxlength="80" value="${mapaEsc(v.f||"")}" style="${inp}">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn" style="height:34px;font-size:12px;border-color:var(--y);color:var(--y)" onclick="persFormSave()">${cur?"Aplicar alteração":"＋ Adicionar"}</button>${cur?`<button class="btn" style="height:34px;font-size:12px;border-color:var(--red);color:var(--red)" onclick="persDel()">Remover</button><button class="btn" style="height:34px;font-size:12px" onclick="persNew()">Cancelar</button>`:""}</div>
+    <div style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" style="height:34px;font-size:12px;${PERS_ST.dirty?"background:var(--y);color:#0D1220;border-color:var(--y)":""}" onclick="persSave()">💾 ${adm?"Salvar para a equipe":"Salvar neste navegador"}</button><button class="btn" style="height:34px;font-size:12px" onclick="persReset()">${PERS_ST.mine&&PERS_ST.team?"Voltar à versão da equipe":"Voltar ao padrão"}</button></div>
+      <p role="status" style="font-size:11.5px;color:${PERS_ST.dirty?"var(--amber)":"var(--muted)"};margin-top:8px;line-height:1.5">${mapaEsc(PERS_ST.msg||"")} ${L.length} características na montagem${PERS_ST.at?" · salva em "+new Date(PERS_ST.at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):" · ainda não salva"}${PERS_ST.mine?" · versão só deste navegador":""}.</p></div></div>`;}
+PERS_PAGES.persona_after=function(){const s=document.getElementById("psStage");if(s&&s.clientWidth&&Math.abs(s.clientWidth-(PERS_ST.W||0))>24){PERS_ST.W=s.clientWidth;s.outerHTML=persStage();}};
+PERS_PAGES.persona=function(){const S=persState();persBuild();const nd=PERS.filter(p=>p.k==="d").length,na=PERS.filter(p=>p.k==="a").length,nh=PERS.length-nd-na,bs=(on,c)=>on?`border-color:${c||"var(--y)"};color:${c||"var(--y)"}`:"";
+  return`<div class="card" style="margin-bottom:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <button class="btn" style="height:32px;font-size:12px;${bs(S.cat==="all")}" onclick="persCat('all')">Tudo</button>
+    ${Object.entries(PERS_CATS).map(([k,[l,c]])=>`<button class="btn" style="height:32px;font-size:12px;${bs(S.cat===k,c)}" onclick="persCat('${k}')"><i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c};margin-right:6px"></i>${l}</button>`).join("")}
+    <span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" style="height:32px;font-size:12px;${bs(S.auto!==false,"#4FD1C5")}" onclick="persAutoToggle()" title="Características calculadas com os dados de anúncios, site e reservas do painel, mais a pesquisa semanal">⚡ Automático ${S.auto!==false?"ligado":"desligado"}</button>
+    <button class="btn" style="height:32px;font-size:12px;${bs(S.edit)}" onclick="persEditToggle()">${S.edit?"✓ Concluir montagem":"✏ Montar persona"}</button>
+    <button class="btn" style="height:32px;font-size:12px" onclick="persReplay()">↻ Montar de novo</button></span></div>
+  <div class="ps-wrap"><div class="card" style="padding:0;overflow:hidden">${persStage()}</div>
+    <div>${S.edit?persEditorHTML():""}<div class="card" ${S.edit?'style="margin-top:14px"':""}><h3>Detalhe</h3><div id="psTip" style="font-size:13px;min-height:${S.edit?90:150}px"><span style="color:var(--muted);line-height:1.6">Passe o mouse (ou toque) em uma característica para ver o que ela significa e de onde vem.</span></div>
+      <div style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px;font-size:12px;color:var(--muted);line-height:1.7"><span class="ps-k a">Automático</span> ${na} calculadas agora com anúncios, site e reservas do painel. Mudam sozinhas quando os dados são atualizados.<br><span class="ps-k d">Dado</span> ${nd} vêm de pesquisa pública ou de números conferidos.<br><span class="ps-k h">Hipótese</span> ${nh} são leitura de mercado: confirmar com o comercial e com os leads reais.</div></div></div></div>`;};
+
+Object.assign(P,APPS_PAGES,PERS_PAGES,NEWS_PAGES);
+{const _u=P.usuarios;if(_u)P.usuarios=function(){return T("Quem está online no painel",'<div id="onlCard">'+onlCardHTML()+'</div>')+'<div style="height:14px"></div>'+_u.apply(this,arguments);};}
 /* ---------- lembrar onde parou (mês, período, aba, rolagem) ---------- */
 const VIEW_KEY="yalla_view_v1",VIEW_SKIP=new Set(["alerts","page"]);
 (function(){try{const v=JSON.parse(localStorage.getItem(VIEW_KEY)||"null");if(!v)return;
