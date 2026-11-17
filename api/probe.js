@@ -1,5 +1,5 @@
 // Sonda temporária (será removida): testa fontes públicas a partir do servidor do painel.
-const OK = /(^|\.)(ssp\.sp\.gov\.br|prefeitura\.sp\.gov\.br|cetsp\.com\.br|met\.no|inmet\.gov\.br|adsbdb\.com|adsb\.lol|adsb\.fi|rainviewer\.com|brasilapi\.com\.br|sptrans\.com\.br|aviationweather\.gov|open-meteo\.com|cptec\.inpe\.br)$/;
+const OK = /(^|\.)(ssp\.sp\.gov\.br|prefeitura\.sp\.gov\.br|cetsp\.com\.br|met\.no|inmet\.gov\.br|adsbdb\.com|adsb\.lol|adsb\.fi|rainviewer\.com|brasilapi\.com\.br|sptrans\.com\.br|aviationweather\.gov|open-meteo\.com|cptec\.inpe\.br|yalla-relatorios\.vercel\.app)$/;
 module.exports = async (req, res) => {
   const q = req.query || {}, u = String(q.u || "");
   res.setHeader("Content-Type", "application/json; charset=utf-8"); res.setHeader("Cache-Control", "no-store");
