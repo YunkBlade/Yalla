@@ -27,7 +27,8 @@ function palavras(rua) {
   const fortes = w.filter(x => !LIGA.has(x)).map(ab), base = fortes.filter(x => !TITULOS.has(x) && !Object.values(ABR).includes(x) || /^\d+$/.test(x));
   const usa = base.length ? base : fortes, pads = ["%" + usa.join("%") + "%"];
   const conv = usa.map(x => NUMS[x] || x); if (conv.join() !== usa.join()) pads.push("%" + conv.join("%") + "%");
-  return { tipo, fortes, pads };
+  const exato = tipo ? (tipo + " " + w.map(ab).join(" ")).trim() : "";
+  return { tipo, fortes, pads, exato };
 }
 function nota(nome, info) {
   const t = sem(nome).split(" ").map(ab); let s = 0;
@@ -56,15 +57,16 @@ async function lotes(filtro, max) {
 async function geosampa(p, ref, erros) {
   const num = +p.num, info = palavras(p.rua);
   const tenta = async (f, max) => { try { return await lotes(f, max); } catch (e) { erros.push("geosampa: " + e.message.slice(0, 80)); return []; } };
-  for (const pat of info.pads) {
-    const f = await tenta(`nm_logradouro_completo LIKE '${pat.replace(/'/g, "''")}' AND cd_numero_porta='${p.num}'`, 40);
+  const conds = (info.exato ? [`nm_logradouro_completo='${info.exato.replace(/'/g, "''")}'`] : []).concat(info.pads.map(pat => `nm_logradouro_completo LIKE '${pat.replace(/'/g, "''")}'`));
+  for (const cond of conds) {
+    const f = await tenta(`${cond} AND cd_numero_porta='${p.num}'`, 40);
     const b = f.length && melhor(f, info, ref, null);
     if (b && (!ref || b.d < 6)) return { c: b.c, precisao: "lote", detalhe: `${b.x.properties.nm_logradouro_completo}, ${p.num}`, bairro: b.x.properties.tx_complemento_endereco || "" };
   }
   for (const faixa of [60, 240]) {
     const nums = []; for (let n = Math.max(1, num - faixa); n <= num + faixa; n++) if (n !== num && (faixa === 60 || n % 2 === num % 2)) nums.push("'" + n + "'");
-    for (const pat of info.pads) {
-      const f = await tenta(`nm_logradouro_completo LIKE '${pat.replace(/'/g, "''")}' AND cd_numero_porta IN (${nums.join(",")})`, 300);
+    for (const cond of conds) {
+      const f = await tenta(`${cond} AND cd_numero_porta IN (${nums.join(",")})`, 300);
       const b = f.length && melhor(f, info, ref, num);
       if (b && (!ref || b.d < 6))
         return { c: b.c, precisao: "lote_proximo", detalhe: `${b.x.properties.nm_logradouro_completo}, ${b.n} (o número mais perto do ${p.num} no cadastro)`, bairro: b.x.properties.tx_complemento_endereco || "" };
