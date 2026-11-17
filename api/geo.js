@@ -18,13 +18,14 @@ function photon(f) {
   const p = f.properties || {}, g = f.geometry || {}; if (p.countrycode && p.countrycode !== "BR") return null;
   if (!Array.isArray(g.coordinates)) return null;
   const tipo = p.type || "other";
-  let main = p.name || "";
-  if (tipo === "house") main = [p.street || p.name, p.housenumber].filter(Boolean).join(", ") || main;
+  let main = p.name || "", end = "";
+  const poi = tipo === "house" && p.name && p.name !== p.street && p.osm_key !== "place" && p.osm_key !== "building";
+  if (tipo === "house") { end = [p.street, p.housenumber].filter(Boolean).join(", "); if (!poi) main = end || main; }
   if (!main) return null;
   const bairro = p.district || p.locality || "", cidade = p.city || p.county || "", u = uf(p.state);
-  const sub = [bairro && bairro !== main ? bairro : "", cidade && cidade !== main ? cidade : "", u].filter(Boolean).join(" · ") || p.state || "";
+  const sub = [poi && end ? end : "", bairro && bairro !== main ? bairro : "", cidade && cidade !== main ? cidade : "", u].filter(Boolean).join(" · ") || p.state || "";
   const e = p.extent; // [oeste, norte, leste, sul]
-  return { main, sub, type: TIPO[tipo] || p.osm_value || tipo, c: [+g.coordinates[0], +g.coordinates[1]], bb: Array.isArray(e) && e.length === 4 ? [[+e[0], +e[3]], [+e[2], +e[1]]] : null };
+  return { main, sub, type: poi ? "local" : (TIPO[tipo] || p.osm_value || tipo), c: [+g.coordinates[0], +g.coordinates[1]], bb: Array.isArray(e) && e.length === 4 ? [[+e[0], +e[3]], [+e[2], +e[1]]] : null };
 }
 function nominatim(x) {
   const a = x.address || {}, main = x.name || String(x.display_name || "").split(",")[0];

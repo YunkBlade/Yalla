@@ -937,7 +937,7 @@ function mapaSug(){const e=document.getElementById("mapaSug");if(!e)return;const
   if(q.length<2){e.style.display="none";return;}
   const row=(ic,m,s,fn)=>`<button class="mp-sg" onmousedown="event.preventDefault()" onclick="${fn}"><span>${ic}</span><span><b>${mapaEsc(m)}</b><small>${mapaEsc(s)}</small></span></button>`;
   e.innerHTML=(loc.length?`<div class="mp-sh">Áreas de risco</div>`+loc.map(a=>row(SI("dot",12,"#FF4D4D"),a.name,"área demarcada no mapa",`mapaFocus(${a.i});mapaSugHide()`)).join(""):"")
-    +`<div class="mp-sh">Cidades e endereços</div>`+(MAPA.sugLoad?`<div class="mp-sn">Buscando…</div>`:MAPA.sug.length?MAPA.sug.map((s,i)=>row(SI("pin",14),s.main,(["endereço","rua","bairro","cidade","município","estado"].includes(s.type)?s.type[0].toUpperCase()+s.type.slice(1)+" · ":"")+s.sub,`mapaGo(${i})`)).join(""):`<div class="mp-sn">${MAPA.sugErr||(q.length<3?"Digite ao menos 3 letras":"Nada encontrado — tente cidade + estado")}</div>`);
+    +`<div class="mp-sh">Cidades e endereços</div>`+(MAPA.sugLoad?`<div class="mp-sn">Buscando…</div>`:MAPA.sug.length?MAPA.sug.map((s,i)=>row(SI("pin",14),s.main,(["endereço","rua","bairro","cidade","município","estado","local"].includes(s.type)?s.type[0].toUpperCase()+s.type.slice(1)+" · ":"")+s.sub,`mapaGo(${i})`)).join(""):`<div class="mp-sn">${MAPA.sugErr||(q.length<3?"Digite ao menos 3 letras":"Nada encontrado — tente cidade + estado")}</div>`);
   e.style.display="block";}
 function mapaGo(i){const s=MAPA.sug[i],m=MAPA.map;if(!s||!m||!MAPA.ready)return;mapaSugHide();if(MAPA.tour)mapaTour(false);MAPA.lastTouch=Date.now()-2000;mapaSelect(null);
   const inp=document.getElementById("mapaQ");if(inp){inp.value=s.main;MAPA.q=s.main;inp.blur();}

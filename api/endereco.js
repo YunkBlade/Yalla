@@ -40,8 +40,9 @@ const km = (a, b) => { const r = Math.PI / 180, x = (b[0] - a[0]) * r * Math.cos
 function melhor(fs, info, ref, num) {
   const c = fs.map(x => ({ x, n: parseInt(x.properties.cd_numero_porta, 10), s: nota(x.properties.nm_logradouro_completo, info), c: centro(x.geometry) }));
   c.forEach(o => { o.d = ref ? km(o.c, ref) : 0; o.dn = num == null ? 0 : Math.abs(o.n - num) + (o.n % 2 !== num % 2 ? 1000 : 0); });
-  c.sort((a, b) => (b.s - a.s) || (a.dn - b.dn) || (a.d - b.d));
-  return c[0] || null;
+  const ok = c.filter(o => o.s >= info.fortes.length);
+  ok.sort((a, b) => (b.s - a.s) || (a.dn - b.dn) || (a.d - b.d));
+  return ok[0] || null;
 }
 function centro(geom) {
   const rings = geom.type === "Polygon" ? [geom.coordinates[0]] : geom.type === "MultiPolygon" ? geom.coordinates.map(p => p[0]) : [];
@@ -52,7 +53,8 @@ function centro(geom) {
 }
 async function lotes(filtro, max) {
   const url = `${W}?service=WFS&version=1.0.0&request=GetFeature&typeName=geoportal:lote_cidadao&outputFormat=application/json&srsName=EPSG:4326&maxFeatures=${max || 50}&CQL_FILTER=${encodeURIComponent(filtro)}`;
-  const j = await getJ(url, 15000); return (j && j.features) || [];
+  let j; try { j = await getJ(url, 12000); } catch (e) { await new Promise(r => setTimeout(r, 700)); j = await getJ(url, 12000); }
+  if (!j || !Array.isArray(j.features)) throw new Error("resposta inválida da GeoSampa"); return j.features;
 }
 async function geosampa(p, ref, erros) {
   const num = +p.num, info = palavras(p.rua);
@@ -61,14 +63,14 @@ async function geosampa(p, ref, erros) {
   for (const cond of conds) {
     const f = await tenta(`${cond} AND cd_numero_porta='${p.num}'`, 40);
     const b = f.length && melhor(f, info, ref, null);
-    if (b && (!ref || b.d < 6)) return { c: b.c, precisao: "lote", detalhe: `${b.x.properties.nm_logradouro_completo}, ${p.num}`, bairro: b.x.properties.tx_complemento_endereco || "" };
+    if (b) return { c: b.c, precisao: "lote", detalhe: `${b.x.properties.nm_logradouro_completo}, ${p.num}`, bairro: b.x.properties.tx_complemento_endereco || "" };
   }
   for (const faixa of [60, 240]) {
     const nums = []; for (let n = Math.max(1, num - faixa); n <= num + faixa; n++) if (n !== num && (faixa === 60 || n % 2 === num % 2)) nums.push("'" + n + "'");
     for (const cond of conds) {
       const f = await tenta(`${cond} AND cd_numero_porta IN (${nums.join(",")})`, 300);
       const b = f.length && melhor(f, info, ref, num);
-      if (b && (!ref || b.d < 6))
+      if (b)
         return { c: b.c, precisao: "lote_proximo", detalhe: `${b.x.properties.nm_logradouro_completo}, ${b.n} (o número mais perto do ${p.num} no cadastro)`, bairro: b.x.properties.tx_complemento_endereco || "" };
     }
   }
@@ -92,6 +94,8 @@ module.exports = async (req, res) => {
   const p = partes(q); let r = null; const erros = [];
   let ph = null; try { ph = await photon(q, p); } catch (e) { erros.push("photon: " + e.message); }
   try { if (p && p.cidadeSP) { r = await geosampa(p, ph && ph.c, erros); if (r) r.fonte = "Prefeitura de São Paulo (GeoSampa, lote fiscal)"; } } catch (e) { erros.push("geosampa: " + e.message); }
+  // ordem: lote com o mesmo número > número exato no OSM > lote vizinho > só a rua
+  if (ph && ph.precisao === "numero" && (!r || r.precisao !== "lote")) { r = ph; r.fonte = "OpenStreetMap (Photon)"; }
   if (!r && ph) { r = ph; r.fonte = "OpenStreetMap (Photon)"; }
   if (!r) { res.setHeader("Cache-Control", "no-store"); res.statusCode = erros.length ? 502 : 404; res.end(JSON.stringify({ error: "endereço não encontrado", detalhe: erros })); return; }
   res.setHeader("Cache-Control", "public, s-maxage=604800, stale-while-revalidate=2592000");
