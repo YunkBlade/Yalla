@@ -30,26 +30,38 @@ function parse(kml) {
   return { areas, points };
 }
 
-module.exports = async (req, res) => {
+// Só entrega as áreas para quem está logado no painel (token de sessão validado no Supabase).
+const SB = "https://sdzaddteiczjysnnrmih.supabase.co", SBK = "sb_publishable_bvTT-P1mNhHYNHwCFTW_Zg_AgvSNGpF";
+const OK_TOK = new Map(); let CACHE = null;
+async function sessaoOk(tok) {
+  if (!/^[0-9a-f]{64}$/.test(tok || "")) return false;
+  const k = OK_TOK.get(tok); if (k && Date.now() - k < 5 * 60e3) return true;
+  const c = new AbortController(), t = setTimeout(() => c.abort(), 5000);
   try {
+    const r = await fetch(SB + "/rest/v1/rpc/panel_me", { method: "POST", signal: c.signal, headers: { apikey: SBK, Authorization: "Bearer " + SBK, "Content-Type": "application/json" }, body: JSON.stringify({ p_token: tok }) });
+    if (!r.ok) return false;
+    if (OK_TOK.size > 500) OK_TOK.clear(); OK_TOK.set(tok, Date.now()); return true;
+  } catch (e) { return false; } finally { clearTimeout(t); }
+}
+const json = (res, code, obj) => { res.statusCode = code; res.setHeader("Content-Type", "application/json; charset=utf-8"); res.setHeader("Cache-Control", "private, no-store"); res.end(JSON.stringify(obj)); };
+
+module.exports = async (req, res) => {
+  const tok = String(req.headers["x-painel-token"] || "");
+  if (!(await sessaoOk(tok))) { json(res, 401, { error: "sessao_invalida" }); return; }
+  try {
+    if (CACHE && Date.now() - CACHE.t < 120e3) { json(res, 200, CACHE.d); return; }
     const r = await fetch(`https://www.google.com/maps/d/kml?mid=${MID}&forcekml=1`, { redirect: "follow" });
     const txt = await r.text();
     if (!r.ok || !/<kml/i.test(txt)) {
-      res.statusCode = r.status === 200 ? 403 : 502;
-      res.setHeader("Content-Type", "application/json; charset=utf-8");
-      res.end(JSON.stringify({ error: "O mapa não está público. No Google My Maps: Compartilhar → Qualquer pessoa com o link pode ver." }));
+      json(res, r.status === 200 ? 403 : 502, { error: "O mapa não está público. No Google My Maps: Compartilhar → Qualquer pessoa com o link pode ver." });
       return;
     }
     const out = parse(txt);
     out.title = dec(tag(txt, "name"));
     out.fetched = new Date().toISOString();
-    res.statusCode = 200;
-    res.setHeader("Content-Type", "application/json; charset=utf-8");
-    res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=1800");
-    res.end(JSON.stringify(out));
+    CACHE = { t: Date.now(), d: out };
+    json(res, 200, out);
   } catch (e) {
-    res.statusCode = 502;
-    res.setHeader("Content-Type", "application/json; charset=utf-8");
-    res.end(JSON.stringify({ error: "Falha ao buscar o mapa: " + e.message }));
+    json(res, 502, { error: "Falha ao buscar o mapa: " + e.message });
   }
 };

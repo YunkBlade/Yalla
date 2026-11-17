@@ -779,7 +779,7 @@ async function mapaLoad(force){
   if(MAPA.st==="loading")return;
   if(!MAPA.data){try{const c=JSON.parse(localStorage.getItem(MAPA_KEY)||"null");if(c&&c.areas)MAPA.data=mapaPrep(c);}catch(e){}}
   MAPA.st="loading";mapaStatus();
-  try{const r=await fetch("/api/mapa",{cache:"no-store"}),j=await r.json();if(!r.ok||!j.areas)throw new Error(j.error||"Mapa indisponível ("+r.status+")");
+  try{const r=await fetch("/api/mapa",{cache:"no-store",headers:SESS&&SESS.token?{"x-painel-token":SESS.token}:{}}),j=await r.json();if(!r.ok||!j.areas)throw new Error(ERR_TXT[j.error]||j.error||"Mapa indisponível ("+r.status+")");
     try{localStorage.setItem(MAPA_KEY,JSON.stringify(j));}catch(e){}
     MAPA.data=mapaPrep(j);MAPA.st="ok";MAPA.err="";}
   catch(e){MAPA.st=MAPA.data?"cache":"err";MAPA.err=e.message||"Falha ao buscar o mapa";}
@@ -838,13 +838,14 @@ async function mapaInit(){
       m.addLayer({id:"risk-halo",type:"circle",source:"riskc",maxzoom:10.5,paint:{"circle-color":"#FF4D4D","circle-radius":10,"circle-opacity":.25,"circle-blur":.6}});
       m.addLayer({id:"risk-dot",type:"circle",source:"riskc",maxzoom:10.5,paint:{"circle-color":"#FF4D4D","circle-radius":["interpolate",["linear"],["zoom"],3,2.2,9,4.5],"circle-stroke-color":"#fff","circle-stroke-width":["interpolate",["linear"],["zoom"],3,.3,9,1]}});
       m.addLayer({id:"pts",type:"circle",source:"pts",layout:{visibility:MAPA.showPts?"visible":"none"},paint:{"circle-color":["match",["get","kind"],"oficina","#5b8def","#2ED47A"],"circle-radius":["interpolate",["linear"],["zoom"],5,3,13,7],"circle-stroke-color":"#fff","circle-stroke-width":1.2}});
-      const vis=MAPA.showLoc?"visible":"none";
-      m.addLayer({id:"loc-halo",type:"circle",source:"loc",filter:["==",["get","kind"],"yalla"],layout:{visibility:vis},paint:{"circle-color":"#F2A314","circle-radius":16,"circle-opacity":.3,"circle-blur":.5}});
+      const vis=MAPA.showLoc!==false?"visible":"none",visY=MAPA.showYalla!==false?"visible":"none";
+      m.addLayer({id:"loc-halo",type:"circle",source:"loc",filter:["==",["get","kind"],"yalla"],layout:{visibility:visY},paint:{"circle-color":"#F2A314","circle-radius":16,"circle-opacity":.3,"circle-blur":.5}});
       m.addLayer({id:"loc-conc",type:"circle",source:"loc",filter:["==",["get","kind"],"conc"],layout:{visibility:vis},paint:{"circle-color":"#B07CFF","circle-radius":["interpolate",["linear"],["zoom"],4,3.5,12,7,16,10],"circle-stroke-color":"#fff","circle-stroke-width":1.5}});
-      m.addLayer({id:"loc-yalla",type:"circle",source:"loc",filter:["==",["get","kind"],"yalla"],layout:{visibility:vis},paint:{"circle-color":"#F2A314","circle-radius":["interpolate",["linear"],["zoom"],4,5,12,9,16,13],"circle-stroke-color":"#0D1220","circle-stroke-width":2.5}});
+      m.addLayer({id:"loc-yalla",type:"circle",source:"loc",filter:["==",["get","kind"],"yalla"],layout:{visibility:visY},paint:{"circle-color":"#F2A314","circle-radius":["interpolate",["linear"],["zoom"],4,5,12,9,16,13],"circle-stroke-color":"#0D1220","circle-stroke-width":2.5}});
       ["loc-conc","loc-yalla"].forEach(id=>{m.on("click",id,e=>mapaLocFocus(e.features[0].properties.i,true));m.on("mouseenter",id,()=>m.getCanvas().style.cursor="pointer");m.on("mouseleave",id,()=>m.getCanvas().style.cursor="");});
       if(glyphs){
-        m.addLayer({id:"loc-lbl",type:"symbol",source:"loc",minzoom:9,layout:{visibility:vis,"text-field":["get","name"],"text-font":["Noto Sans Bold"],"text-size":["match",["get","kind"],"yalla",13,11],"text-offset":[0,1.2],"text-anchor":"top","text-max-width":10,"text-allow-overlap":false},paint:{"text-color":["match",["get","kind"],"yalla","#F2A314","#d9c4ff"],"text-halo-color":"#0a1020","text-halo-width":1.6}});
+        m.addLayer({id:"loc-lbl",type:"symbol",source:"loc",minzoom:9,filter:["!=",["get","kind"],"yalla"],layout:{visibility:vis,"text-field":["get","name"],"text-font":["Noto Sans Bold"],"text-size":11,"text-offset":[0,1.2],"text-anchor":"top","text-max-width":10,"text-allow-overlap":false},paint:{"text-color":"#d9c4ff","text-halo-color":"#0a1020","text-halo-width":1.6}});
+        m.addLayer({id:"loc-lbl-y",type:"symbol",source:"loc",minzoom:7,filter:["==",["get","kind"],"yalla"],layout:{visibility:visY,"text-field":["get","name"],"text-font":["Noto Sans Bold"],"text-size":13,"text-offset":[0,1.2],"text-anchor":"top","text-max-width":10,"text-allow-overlap":true},paint:{"text-color":"#F2A314","text-halo-color":"#0a1020","text-halo-width":1.6}});
         m.addLayer({id:"risk-lbl",type:"symbol",source:"riskc",minzoom:10.2,layout:{"text-field":["get","name"],"text-font":["Noto Sans Bold"],"text-size":["interpolate",["linear"],["zoom"],10,10,14,13],"text-max-width":9},paint:{"text-color":"#fff","text-halo-color":"#7a1010","text-halo-width":1.4}});
         m.addLayer({id:"pts-lbl",type:"symbol",source:"pts",minzoom:11.5,layout:{visibility:MAPA.showPts?"visible":"none","text-field":["get","name"],"text-font":["Noto Sans Regular"],"text-size":11,"text-offset":[0,1.1],"text-anchor":"top","text-max-width":9},paint:{"text-color":"#cfe0ff","text-halo-color":"#0a1020","text-halo-width":1.2}});
       }
@@ -870,7 +871,7 @@ function mapaLoop(){
     const dt=Math.min(80,t-last);last=t;
     if(MAPA.ready){
       if(MAPA.spin&&(!MAPA.tour||MAPA.city)&&Date.now()-MAPA.lastTouch>(MAPA.tour?0:4500)&&!m.isMoving()&&!document.hidden)m.setBearing((m.getBearing()+dt*(MAPA.city?.0055:.0028))%360);
-      if(m.getLayer("loc-halo")&&!REDUCED&&MAPA.showLoc){const k=(t%2200)/2200;m.setPaintProperty("loc-halo","circle-radius",12+k*22);m.setPaintProperty("loc-halo","circle-opacity",.42*(1-k));}
+      if(m.getLayer("loc-halo")&&!REDUCED&&MAPA.showYalla!==false){const k=(t%2200)/2200;m.setPaintProperty("loc-halo","circle-radius",12+k*22);m.setPaintProperty("loc-halo","circle-opacity",.42*(1-k));}
       if(m.getZoom()<10.5&&m.getLayer("risk-halo")&&!REDUCED){const k=(t%1800)/1800;m.setPaintProperty("risk-halo","circle-radius",6+k*16);m.setPaintProperty("risk-halo","circle-opacity",.38*(1-k));}
       if((MAPA.showVeh!==false||MAPA.showPlanes!==false)&&!REDUCED&&!document.hidden){try{vehStep(m,dt);}catch(e){}}
     }
@@ -899,7 +900,7 @@ function mapaLocFocus(i,keep){const p=(MAPA.loc||[])[i],m=MAPA.map;if(!p||!m||!M
   if(!keep||m.getZoom()<13)m.flyTo({center:[p.lng,p.lat],zoom:16.2,pitch:REDUCED?0:70,bearing:m.getBearing(),duration:REDUCED?0:2600,essential:true});
   const L=mapaLocate([p.lng,p.lat]),km=L.km,kt=km<1?Math.round(km*1000)+" m":km.toFixed(1).replace(".",",")+" km";
   mapaPopup([p.lng,p.lat],`<span class="mp-tag" style="color:${p.kind==="yalla"?"var(--y)":"#B07CFF"}">${p.kind==="yalla"?"Unidade Yalla":"Concorrente"}</span><b>${mapaEsc(p.name)}</b><div class="mp-s">${mapaEsc(p.addr||"")}${p.approx?"<br>Posição aproximada (nível da rua)":""}${L.near?`<br>${L.inside?"Dentro da área de risco "+mapaEsc(L.inside.name):"Área de risco mais próxima: "+mapaEsc(L.near.name)+", a "+kt}`:""}</div>${mapaGLink([p.lng,p.lat])}`);}
-function mapaLocToggle(){MAPA.showLoc=!MAPA.showLoc;const m=MAPA.map;if(m&&MAPA.ready)["loc-halo","loc-conc","loc-yalla","loc-lbl"].forEach(id=>m.getLayer(id)&&m.setLayoutProperty(id,"visibility",MAPA.showLoc?"visible":"none"));mapaBtns();}
+function mapaLocToggle(){mapaLayer("showLoc");}
 function mapaFull(on){const b=document.body,want=on==null?!b.classList.contains("mp-full"):on;if(want===b.classList.contains("mp-full"))return;
   b.classList.toggle("mp-full",want);
   try{if(want&&!document.fullscreenElement)document.documentElement.requestFullscreen?.().catch(()=>{});else if(!want&&document.fullscreenElement)document.exitFullscreen?.();}catch(e){}
@@ -3918,7 +3919,8 @@ const LAYERS=[
  {k:"showTr",l:"Trânsito agora (CET-SP)",c:"#FF8A3D",ids:["tr-fill","tr-line","tr-lbl"],d:"Lentidão por região da capital",load:()=>trLoadAll()},
  {k:"showAir",l:"Aeroportos",c:"#8fd3ff",ids:["air-sym"],d:"Aeroportos do Brasil com voo regular",load:()=>airLoad()},
  {k:"showYr",l:"Raio de atuação da Yalla",c:"#F2A314",ids:["yr-fill","yr-line","yr-ring","yr-lbl"],d:"Círculo ajustável e anéis de 5, 10, 20 e 30 km"},
- {k:"showLoc",l:"Yalla e concorrentes em SP",c:"#F2A314",ids:["loc-halo","loc-conc","loc-yalla","loc-lbl"],d:"Endereços conferidos"},
+ {k:"showYalla",l:"Yalla Car",c:"#F2A314",ids:["loc-halo","loc-yalla","loc-lbl-y"],d:"Sede da Yalla, só ela no mapa"},
+ {k:"showLoc",l:"Concorrentes em SP",c:"#B07CFF",ids:["loc-conc","loc-lbl"],d:"Endereços conferidos dos concorrentes"},
  {k:"showBr",l:"Concorrentes no Brasil",c:"#22C55E",ids:["br-rad","br-pt","br-lbl"],d:"Locadoras e raio de atuação",load:()=>brLoad()},
  {k:"showZones",l:"Zonas de força em SP",c:"#B07CFF",ids:["zone-fill","zone-line"],d:"Raio de 4 km das unidades conferidas"},
  {k:"showPts",l:"Oficinas e pontos",c:"#5b8def",ids:["pts","pts-lbl"],d:"Do My Maps"},
